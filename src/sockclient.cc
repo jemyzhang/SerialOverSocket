@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <memory>
 
 #include "ioloop.h"
 #include "sockclient.h"
@@ -37,7 +38,12 @@ int Client::input_data_handler(int fd) {
       break;
     } else {
       if (fd == fileno(stdin)) {
-        write_txbuf(buf, count);
+        if(count == 1 && buf[0] == 0x11) {
+          // Ctrl+Q
+          switch_admin_connection(!admin_socket_);
+        } else {
+          write_txbuf(buf, count);
+        }
       } else {
         write_rxbuf(buf, count);
       }
@@ -87,14 +93,15 @@ int Client::handle(epoll_event e) {
 
 Client::Client(ClientConfig::Info &info)
     : Connection(0, {Connection::CONNECTION_CLIENT, "", ""}),
-      client_socket_(info.server.address, info.server.port, true) {
+      client_socket_(info.server.address, info.server.port, true),
+      info_(info) {
   if (client_socket_.fileno() < 0) {
     cerr << "failed to connect to the server: " << info.server.address << ":"
          << info.server.port << endl;
     exit(1);
   }
 
-  fd_ = client_socket_.fileno();
+  client_fd_ = fd_ = client_socket_.fileno();
   client_socket_.setunblock();
 
   set_termio_mode();
@@ -130,4 +137,33 @@ void Client::set_termio_mode() {
   options.c_cc[VTIME] = 1;
   tcsetattr(fileno(stdin), TCSAFLUSH, &options);
 }
+
+  void Client::switch_admin_connection(bool connect) {
+    if(connect) {
+      if(admin_socket_) {
+        return;
+      } else {
+        cout << endl << "Connecting to control panel..." << endl;
+        admin_socket_ = std::make_unique<Socket>(info_.server.address, info_.server.manager.port, true);
+        if(admin_socket_->fileno()) {
+          admin_socket_->setunblock();
+          IOLoop::getInstance()->removeHandler(fd_);
+          client_fd_ = fd_;
+          fd_ = admin_socket_->fileno();
+          IOLoop::getInstance()->addHandler(fd_, this,
+                                            EPOLLIN | EPOLLET);
+        }
+      }
+    } else {
+      if(admin_socket_) {
+        cout << endl << "Disconnecting from control panel..." << endl;
+        admin_socket_.release();
+        IOLoop::getInstance()->removeHandler(fd_);
+        IOLoop::getInstance()->addHandler(client_fd_, this,
+                                          EPOLLIN | EPOLLET);
+        fd_ = client_fd_;
+      }
+    }
+
+  }
 }

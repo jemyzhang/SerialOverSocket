@@ -32,8 +32,14 @@ private:
   void set_termio_mode();
 
 private:
+  void switch_admin_connection(bool connect);
+
+private:
   Socket client_socket_;
+  unique_ptr<Socket> admin_socket_;
   struct termios term_option_;
+  ClientConfig::Info info_;
+  int client_fd_; // for backup
 };
 }
 

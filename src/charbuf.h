@@ -20,11 +20,13 @@ public:
 public:
   void reset();
   ssize_t append(const char *content, ssize_t length);
-  string getline();
+  bool hasline();
   bool getchar(char &c);
   bool empty();
   string popline();
   char popchar();
+  //remove one char from the last line expect the LF
+  ssize_t remove_line_char(ssize_t length=1);
 
 private:
   vector<char>::iterator find(char);

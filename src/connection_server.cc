@@ -107,9 +107,11 @@ void SerialPortConnection::received(const char *content, ssize_t length) {
 AdminConnection::AdminConnection(int fd, string host, string port)
     : Connection(fd, {CONNECTION_ADMIN, host + ":" + port, ""}), quit_(false),
       processor_thread_(&AdminConnection::cmd_processor, this) {
+  write_txbuf("\n");
   write_txbuf("===---      Serial Over Socket     ---===\n");
-  write_txbuf("===--- Admin Interface Ver." SERVER_VER " --===\n");
-  write_txbuf("Enter \"help\" for usage hints\n");
+  write_txbuf("===---   Control Panel Ver." SERVER_VER "   ---===\n");
+  write_txbuf(": Enter \"help\" for usage hints\n");
+  write_txbuf("MGR$ ");
 }
 
 AdminConnection::~AdminConnection() {
@@ -120,6 +122,28 @@ AdminConnection::~AdminConnection() {
 
 ssize_t AdminConnection::write_rxbuf(const char *content, ssize_t length) {
   std::unique_lock<std::mutex> guard(mutex_);
+  bool ignore = false;
+  //enable echo
+  write_txbuf(content,length);
+  // assume input char by char
+  if(length == 1) {
+    switch(content[0]) {
+      case '\n':
+        //write_txbuf("MGR$ ");
+        break;
+      case 0x7f:
+        if(rxbuf_.remove_line_char()) {
+          write_txbuf("\33[1D\33[K");
+        }
+        ignore = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  if(ignore) return length;
+
   rxbuf_.append(content, length);
   condition_.notify_one();
   return length;
@@ -128,24 +152,41 @@ ssize_t AdminConnection::write_rxbuf(const char *content, ssize_t length) {
 void AdminConnection::cmd_processor() {
   for (;;) {
     std::unique_lock<std::mutex> guard(mutex_);
-    condition_.wait(guard, [this]() { return !rxbuf_.empty() || quit_; });
-    if (!rxbuf_.empty()) {
+    condition_.wait(guard, [this]() { return rxbuf_.hasline() || quit_; });
       string cmd_input;
-      while (!(cmd_input = rxbuf_.popline()).empty()) {
-        if (cmd_input == "help") {
-          // print_help();
-        } else if (cmd_input == "disconnect") {
-          SerialPort::getInstance()->disconnect();
-        } else if (cmd_input == "connect") {
-          SerialPort::getInstance()->connect();
-        } else if (cmd_input == "reconnect") {
-          SerialPort::getInstance()->reconnect();
-        } else if (cmd_input == "config") {
-        }
+    if (!(cmd_input = rxbuf_.popline()).empty()) {
+      if (cmd_input == "help") {
+        print_help();
+      } else if (cmd_input == "disconnect") {
+        SerialPort::getInstance()->disconnect();
+      } else if (cmd_input == "connect") {
+        SerialPort::getInstance()->connect();
+      } else if (cmd_input == "reconnect") {
+        SerialPort::getInstance()->reconnect();
+      } else if (cmd_input == "config") {
+      } else if (cmd_input == "exit") {
+        req_quit_ = true;
+        write_txbuf("Bye!\n");
       }
+    }
+    if(!req_quit_) {
+      write_txbuf("MGR$ ");
     }
     if (quit_)
       break;
   }
 }
+
+  void AdminConnection::print_help() {
+    string help_msg =
+        "\n"
+        "  connect    :  connect to serial port with the existing config\n"
+        "  disconnect :  disconnect from serial port\n"
+        "  reconnect  :  disconnect and then connect to serial port\n"
+        "  exit       :  exit the current client connection\n"
+        "  help       :  print this help message\n"
+        "\n"
+    ;
+    write_txbuf(help_msg);
+  }
 }

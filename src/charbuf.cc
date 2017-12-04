@@ -23,17 +23,9 @@ ssize_t CharBuf::append(const char *content, ssize_t length) {
   return length;
 }
 
-string CharBuf::getline() {
+bool CharBuf::hasline() {
   auto loc = find('\n');
-  string ret;
-  mutex_.lock();
-  if (loc != m_buf.end()) {
-    ret = string(m_buf.begin(), loc);
-  } else {
-    ret = string();
-  }
-  mutex_.unlock();
-  return ret;
+  return loc != m_buf.end();
 }
 
 bool CharBuf::getchar(char &c) {
@@ -87,4 +79,26 @@ vector<char>::iterator CharBuf::find(char) {
   auto loc = std::find(m_buf.begin(), m_buf.end(), '\n');
   return loc;
 }
+
+  ssize_t CharBuf::remove_line_char(ssize_t length) {
+    ssize_t removed = 0;
+    mutex_.lock();
+    if(!m_buf.empty()) {
+      while(length) {
+        if(m_buf.back() != '\n') {
+          m_buf.pop_back();
+          length--;
+          removed++;
+        } else {
+          length = 0;
+        }
+
+        if (length <= 0) {
+          break;
+        }
+      }
+    }
+    mutex_.unlock();
+    return removed;
+  }
 }

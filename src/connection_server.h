@@ -52,6 +52,7 @@ public:
 
 private:
   void cmd_processor();
+  void print_help();
   std::mutex mutex_;
   condition_variable condition_;
   thread processor_thread_;

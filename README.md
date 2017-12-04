@@ -30,3 +30,7 @@ make
 ### Client
 - log to file
 - change port configuration runtime
+
+## DONE
+### Client
+- control+Q enter admin interface
