@@ -114,9 +114,8 @@ Client::Client(ClientConfig::Info &info)
 
 Client::~Client() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_option_); }
 
-ssize_t Client::write_rxbuf(const char *content, ssize_t /* length */) {
-  cout << content << std::flush;
-  return 0;
+ssize_t Client::write_rxbuf(const char *content, ssize_t length) {
+  return write(fileno(stdout), content, length);
 }
 
 void Client::set_termio_mode() {
