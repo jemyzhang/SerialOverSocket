@@ -75,30 +75,42 @@ char CharBuf::popchar() {
   return c;
 }
 
+void CharBuf::pop(ssize_t length) {
+  mutex_.lock();
+  if (!m_buf.empty()) {
+    if(length > m_buf.size()) {
+      length = m_buf.size();
+    }
+    m_buf.erase(m_buf.begin(), m_buf.begin() + length);
+  }
+  mutex_.unlock();
+  return;
+}
+
 vector<char>::iterator CharBuf::find(char) {
   auto loc = std::find(m_buf.begin(), m_buf.end(), '\n');
   return loc;
 }
 
-  ssize_t CharBuf::remove_line_char(ssize_t length) {
-    ssize_t removed = 0;
-    mutex_.lock();
-    if(!m_buf.empty()) {
-      while(length) {
-        if(m_buf.back() != '\n') {
-          m_buf.pop_back();
-          length--;
-          removed++;
-        } else {
-          length = 0;
-        }
+ssize_t CharBuf::remove_line_char(ssize_t length) {
+  ssize_t removed = 0;
+  mutex_.lock();
+  if(!m_buf.empty()) {
+    while(length) {
+      if(m_buf.back() != '\n') {
+        m_buf.pop_back();
+        length--;
+        removed++;
+      } else {
+        length = 0;
+      }
 
-        if (length <= 0) {
-          break;
-        }
+      if (length <= 0) {
+        break;
       }
     }
-    mutex_.unlock();
-    return removed;
   }
+  mutex_.unlock();
+  return removed;
+}
 }

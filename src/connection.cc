@@ -53,10 +53,10 @@ bool Connection::quiting() { return req_quit_; }
 
 void Connection::flush() {
   char c;
-  while (txbuf_.getchar(c)) {
-    if (write(fd_, &c, sizeof(c)) > 0) {
-      txbuf_.popchar();
-    }
+  while (!txbuf_.empty()) {
+    ssize_t written = write(fd_, txbuf_.contents(), txbuf_.length());
+    if(written <= 0) break;
+    txbuf_.pop(written);
   }
 }
 
