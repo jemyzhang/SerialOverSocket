@@ -6,56 +6,60 @@
 #define SERIAL_OVER_SOCKET_CONFIG_H
 
 #include <string>
+#include <memory>
+#include <json.hpp>
 using namespace std;
+using namespace nlohmann;
 
 namespace SerialOverSocket {
 
-class Config {
-public:
-  Config() = default;
-  ~Config() = default;
+  class Config {
+  public:
+    Config() = default;
+    ~Config() = default;
 
-public:
-  struct ServerManager {
-    ServerManager();
-    ~ServerManager();
+  public:
+    static shared_ptr<Config> getInstance();
 
-    int port;
-    string password;
+  public:
+    string server_address();
+    int server_port();
+    int admin_port();
+    string admin_password();
+
+  public:
+    bool load_config_file(string filepath);
+
+  public:
+    static shared_ptr<Config> instance_;
+  protected:
+    json configs;
   };
 
-  struct Server {
-    Server();
-    ~Server();
+  class ServerConfig : public Config {
+  public:
+    ServerConfig() = default;
+    ~ServerConfig() = default;
 
-    string address;
-    int port;
-    struct ServerManager manager;
+  public:
+    static shared_ptr<ServerConfig> getInstance();
+
+  public:
+    string serial_device();
+    int serial_baudrate();
+    int serial_databits();
+    int serial_stopbit();
+    char serial_parity();
   };
 
-  struct SerialPort {
-    SerialPort();
-    ~SerialPort();
+  class ClientConfig : public Config {
+  public:
+    static shared_ptr<ClientConfig> getInstance();
 
-    string devname;
-    int baudrate;
-    int databits;
-    int stopbit;
-    int parity;
+  public:
+    ClientConfig() = default;
+    ~ClientConfig() = default;
   };
-
-  struct Info {
-    struct Server server;
-    struct SerialPort serial;
-  };
-
-public:
-  bool load_config_file(string filepath);
-
-public:
-  struct Info detail_;
-};
-
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_CONFIG_H

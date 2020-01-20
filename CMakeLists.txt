@@ -16,6 +16,7 @@ set(SERVER_SOURCE_FILES
         src/server_main.cc
         src/socket.cc
         src/sockserver.cc
+        src/snippets.cc
         )
 
 
@@ -31,7 +32,7 @@ target_link_libraries(sos_server
 set(CLIENT_SOURCE_FILES
         json/json.hpp
         src/charbuf.cc
-        src/client_config.cc
+        src/config.cc
         src/client_main.cc
         src/connection.cc
         src/handler.cc

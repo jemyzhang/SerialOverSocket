@@ -37,7 +37,7 @@ void Server::close_all_connections(bool bexit) {
     close_connection(pcon);
   }
   close(server_socket_.fileno());
-  close(manager_socket_.fileno());
+  close(admin_socket_.fileno());
   if (bexit) {
     exit(0);
   }
@@ -74,7 +74,7 @@ int Server::accept_connection(int srvfd) {
                                             EPOLLOUT | EPOLLIN | EPOLLET);
 
     Connection *pconn;
-    if (srvfd == manager_socket_.fileno()) {
+    if (srvfd == admin_socket_.fileno()) {
       pconn = new AdminConnection(infd, hbuf, sbuf);
     } else {
       pconn = new ClientConnection(infd, hbuf, sbuf);
@@ -130,7 +130,7 @@ int Server::input_data_handler(int fd) {
 }
 
 int Server::input_event_handler(int fd) {
-  if (fd == server_socket_.fileno() || fd == manager_socket_.fileno()) {
+  if (fd == server_socket_.fileno() || fd == admin_socket_.fileno()) {
     /* We have a notification on the listening socket, which
        means one or more incoming connections. */
     accept_connection(fd);
@@ -177,25 +177,26 @@ int Server::handle(epoll_event e) {
   return 0;
 }
 
-Server::Server(Config::Info &info)
-    : server_socket_(info.server.address, info.server.port),
-      manager_socket_(info.server.address, info.server.manager.port) {
+Server::Server()
+  : cfg(ServerConfig::getInstance()),
+    server_socket_(cfg->server_address(), cfg->server_port()),
+    admin_socket_(cfg->server_address(), cfg->admin_port()) {
 
   server_socket_.setunblock();
-  manager_socket_.setunblock();
+  admin_socket_.setunblock();
 
   pcmgr_ = new ConnectionManager();
 
   IOLoop::getInstance()->addHandler(server_socket_.fileno(), this,
                                     EPOLLIN | EPOLLET);
-  IOLoop::getInstance()->addHandler(manager_socket_.fileno(), this,
+  IOLoop::getInstance()->addHandler(admin_socket_.fileno(), this,
                                     EPOLLIN | EPOLLET);
 
   SerialPort::getInstance()->InstallStatusCallback(
       std::bind(&Server::OnSerialPortConnectionChanged, this, placeholders::_1,
                 placeholders::_2));
 
-  SerialPort::getInstance()->connect(info.serial);
+  SerialPort::getInstance()->connect(cfg);
 }
 
 Server::~Server() { close_all_connections(true); }
@@ -203,8 +204,7 @@ Server::~Server() { close_all_connections(true); }
 void Server::OnSerialPortConnectionChanged(bool b, int fd) {
   if (b) {
     IOLoop::getInstance()->addHandler(fd, this, EPOLLIN | EPOLLET);
-    Config::SerialPort cfg = SerialPort::getInstance()->getConfig();
-    pcmgr_->append(new SerialPortConnection(fd, cfg.devname, ""));
+    pcmgr_->append(new SerialPortConnection(fd, cfg->serial_device(), ""));
   } else {
     IOLoop::getInstance().get()->removeHandler(fd);
     Connection *pcon = pcmgr_->remove(fd);

@@ -6,7 +6,10 @@
 #include "ioloop.h"
 #include "serialport.h"
 #include "sockserver.h"
+#include "snippets.h"
 #include <iostream>
+#include <iterator>
+#include <sstream>
 
 using namespace std::placeholders;
 
@@ -106,6 +109,7 @@ void SerialPortConnection::received(const char *content, ssize_t length) {
 
 AdminConnection::AdminConnection(int fd, string host, string port)
     : Connection(fd, {CONNECTION_ADMIN, host + ":" + port, ""}), quit_(false),
+      DataProxy::Client(DataProxy::Client::SOCK2SERIAL),
       processor_thread_(&AdminConnection::cmd_processor, this) {
   write_txbuf("\n");
   write_txbuf("===---      Serial Over Socket     ---===\n");
@@ -118,6 +122,10 @@ AdminConnection::~AdminConnection() {
   std::unique_lock<std::mutex>(this->mutex_), (this->quit_ = true);
   condition_.notify_one();
   processor_thread_.join();
+}
+
+void AdminConnection::received(const char *content, ssize_t length) {
+  // received from serial port, not process
 }
 
 ssize_t AdminConnection::write_rxbuf(const char *content, ssize_t length) {
@@ -155,18 +163,34 @@ void AdminConnection::cmd_processor() {
     condition_.wait(guard, [this]() { return rxbuf_.hasline() || quit_; });
       string cmd_input;
     if (!(cmd_input = rxbuf_.popline()).empty()) {
-      if (cmd_input == "help") {
+      std::stringstream ss(cmd_input);
+      std::istream_iterator<std::string> begin(ss);
+      std::istream_iterator<std::string> end;
+      std::vector<std::string> args(begin, end);
+      if (args[0] == "help") {
         print_help();
-      } else if (cmd_input == "disconnect") {
+      } else if (args[0] == "disconnect") {
         SerialPort::getInstance()->disconnect();
-      } else if (cmd_input == "connect") {
+      } else if (args[0] == "connect") {
         SerialPort::getInstance()->connect();
-      } else if (cmd_input == "reconnect") {
+      } else if (args[0] == "reconnect") {
         SerialPort::getInstance()->reconnect();
-      } else if (cmd_input == "config") {
-      } else if (cmd_input == "exit") {
+      } else if (args[0] == "config") {
+      } else if (args[0] == "exit") {
         req_quit_ = true;
         write_txbuf("Bye!\n");
+      } else if (args[0] == "snl") {
+        string titles = Snippets::getInstance()->ls("  ");
+        write_txbuf(titles);
+      } else if (args[0] == "snv" && args.size() > 1) {
+        string contents = Snippets::getInstance()->cat(args[1], "  ");
+        write_txbuf(contents);
+      } else if (args[0] == "snr" && args.size() > 1) {
+        string contents = Snippets::getInstance()->cat(args[1]);
+        transfer(contents.c_str(), contents.length());
+        transfer("\n", 1);
+      } else {
+        write_txbuf("command not found!\n");
       }
     }
     if(!req_quit_) {
@@ -183,6 +207,9 @@ void AdminConnection::cmd_processor() {
         "  connect    :  connect to serial port with the existing config\n"
         "  disconnect :  disconnect from serial port\n"
         "  reconnect  :  disconnect and then connect to serial port\n"
+        "  snl        :  list snippets\n"
+        "  snv [name] :  show contents of snippet\n"
+        "  snr [name] :  run snippet\n"
         "  exit       :  exit the current client connection\n"
         "  help       :  print this help message\n"
         "\n"

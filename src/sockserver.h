@@ -18,7 +18,7 @@ using namespace std;
 namespace SerialOverSocket {
 class Server : Handler {
 public:
-  explicit Server(Config::Info &info);
+  explicit Server();
 
   ~Server() final;
 
@@ -36,8 +36,9 @@ private:
   void OnSerialPortConnectionChanged(bool, int);
 
 private:
+  shared_ptr<ServerConfig> cfg;
   Socket server_socket_;
-  Socket manager_socket_;
+  Socket admin_socket_;
   ConnectionManager *pcmgr_;
 };
 }

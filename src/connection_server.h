@@ -42,13 +42,16 @@ public:
   void received(const char *content, ssize_t length) final;
 };
 
-class AdminConnection : public Connection {
+class AdminConnection : public Connection, public DataProxy::Client {
 public:
   explicit AdminConnection(int fd, string host, string port);
   ~AdminConnection() final;
 
 public:
   ssize_t write_rxbuf(const char *content, ssize_t length) final;
+
+  // implementation of DataProxy::Client
+  void received(const char *content, ssize_t length);
 
 private:
   void cmd_processor();

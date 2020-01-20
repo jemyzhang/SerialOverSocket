@@ -5,7 +5,7 @@
 #ifndef SERIAL_OVER_SOCKET_SOCKET_CLIENT_H
 #define SERIAL_OVER_SOCKET_SOCKET_CLIENT_H
 
-#include "client_config.h"
+#include "config.h"
 #include "connection.h"
 #include "handler.h"
 #include "socket.h"
@@ -17,7 +17,7 @@ namespace SerialOverSocket {
 
 class Client : public Handler, public Connection {
 public:
-  explicit Client(ClientConfig::Info &info);
+  explicit Client();
   ~Client() final;
 
   int handle(epoll_event e) final;
@@ -35,10 +35,10 @@ private:
   void switch_admin_connection(bool connect);
 
 private:
+  shared_ptr<ClientConfig> cfg;
   Socket client_socket_;
   unique_ptr<Socket> admin_socket_;
   struct termios term_option_;
-  ClientConfig::Info info_;
   int client_fd_; // for backup
 };
 }

@@ -22,10 +22,8 @@ public:
   using OnStatusChangedCallback = std::function<void(bool, int)>;
 
 public:
-  int connect(Config::SerialPort &);
+  int connect(shared_ptr<ServerConfig> cfg);
   int connect() { return connect(cfg_); }
-  void setConfig(Config::SerialPort &cfg) { cfg_ = cfg; }
-  const Config::SerialPort getConfig() { return cfg_; }
 
   void disconnect();
   int reconnect();
@@ -43,7 +41,7 @@ public:
 
 private:
   int fd_;
-  Config::SerialPort cfg_;
+  shared_ptr<ServerConfig> cfg_;
   vector<OnStatusChangedCallback> callback_;
   static shared_ptr<SerialPort> instance_;
 };

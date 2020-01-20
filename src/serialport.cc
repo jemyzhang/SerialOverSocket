@@ -35,17 +35,17 @@ SerialPort::~SerialPort() {
   callback_.clear();
 }
 
-int SerialPort::connect(Config::SerialPort &portcfg) {
+int SerialPort::connect(shared_ptr<ServerConfig> cfg) {
   if (fd_ > 0)
     return fd_;
 
-  cfg_ = portcfg;
+  this->cfg_ = cfg;
 
   int fd;
   int i;
   struct termios options {};
 
-  if ((fd = open(portcfg.devname.c_str(), O_RDWR | O_NONBLOCK)) <= 0) {
+  if ((fd = open(cfg->serial_device().c_str(), O_RDWR | O_NONBLOCK)) <= 0) {
     perror("serial port open");
     return -1;
   }
@@ -60,7 +60,7 @@ int SerialPort::connect(Config::SerialPort &portcfg) {
 
     bool baudrate_valid = false;
     for (i = 0; i < sizeof(baudrate_pairs) / sizeof(baudrate_pairs[0]); i++) {
-      if (portcfg.baudrate == baudrate_pairs[i].baudrate) {
+      if (cfg->serial_baudrate() == baudrate_pairs[i].baudrate) {
         cfsetispeed(&options, baudrate_pairs[i].speed);
         cfsetospeed(&options, baudrate_pairs[i].speed);
         baudrate_valid = true;
@@ -72,7 +72,7 @@ int SerialPort::connect(Config::SerialPort &portcfg) {
     }
 
     options.c_cflag &= ~CSIZE;
-    switch (portcfg.databits) {
+    switch (cfg->serial_databits()) {
     case 7:
       options.c_cflag |= CS7;
       break;
@@ -82,7 +82,7 @@ int SerialPort::connect(Config::SerialPort &portcfg) {
     default:
       throw("Unsupported data bits");
     }
-    switch (portcfg.parity) {
+    switch (cfg->serial_parity()) {
     case 'n':
     case 'N':
       options.c_cflag &= ~PARENB; /* Clear parity enable */
@@ -108,11 +108,11 @@ int SerialPort::connect(Config::SerialPort &portcfg) {
       throw("Unsupported parity");
     }
     /* Set input parity option */
-    if (portcfg.parity != 'n') {
+    if (cfg->serial_parity() != 'n') {
       options.c_iflag |= INPCK;
     }
     /* Set stopbit*/
-    switch (portcfg.stopbit) {
+    switch (cfg->serial_stopbit()) {
     case 1:
       options.c_cflag &= ~CSTOPB;
       break;

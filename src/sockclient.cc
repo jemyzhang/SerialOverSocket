@@ -91,13 +91,13 @@ int Client::handle(epoll_event e) {
   return 0;
 }
 
-Client::Client(ClientConfig::Info &info)
+Client::Client()
     : Connection(0, {Connection::CONNECTION_CLIENT, "", ""}),
-      client_socket_(info.server.address, info.server.port, true),
-      info_(info) {
+      cfg(ClientConfig::getInstance()),
+      client_socket_(cfg->server_address(), cfg->server_port(), true){
   if (client_socket_.fileno() < 0) {
-    cerr << "failed to connect to the server: " << info.server.address << ":"
-         << info.server.port << endl;
+    cerr << "failed to connect to the server: " << cfg->server_address() << ":"
+         << cfg->server_port() << endl;
     exit(1);
   }
 
@@ -143,7 +143,7 @@ void Client::set_termio_mode() {
         return;
       } else {
         cout << endl << "Connecting to control panel..." << endl;
-        admin_socket_ = std::make_unique<Socket>(info_.server.address, info_.server.manager.port, true);
+        admin_socket_ = std::make_unique<Socket>(cfg->server_address(), cfg->admin_port(), true);
         if(admin_socket_->fileno()) {
           admin_socket_->setunblock();
           IOLoop::getInstance()->removeHandler(fd_);

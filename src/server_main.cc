@@ -2,23 +2,17 @@
 // Created by jemyzhang on 16-12-30.
 //
 
+#include "config.h"
 #include "ioloop.h"
 #include "sockserver.h"
 #include <csignal>
 #include <getopt.h>
-
-#define DEFAULT_CONFIG_PATH "/etc/serialoversock/config.json"
+#include <unistd.h>
+#include <pwd.h>
 
 #define SOS_SERVER_VER "1.0.0"
 static const char *optstr = "p:a:c:b:d:s:r:t:hv";
-static const struct option opts[] = {{"", required_argument, nullptr, 'p'},
-                                     {"", required_argument, nullptr, 'a'},
-                                     {"", required_argument, nullptr, 'c'},
-                                     {"", required_argument, nullptr, 'b'},
-                                     {"", required_argument, nullptr, 'd'},
-                                     {"", required_argument, nullptr, 's'},
-                                     {"", required_argument, nullptr, 'r'},
-                                     {"", required_argument, nullptr, 't'},
+static const struct option opts[] = {{"", required_argument, nullptr, 'c'},
                                      {"", no_argument, nullptr, 'h'},
                                      {"", no_argument, nullptr, 'v'},
                                      {nullptr, no_argument, nullptr, 0}};
@@ -30,22 +24,14 @@ static void print_version() {
 static void print_help(const char *prog) {
   printf("Usage: %s -p [port] [-hlv]\n\n", prog);
   printf("Options:\n");
-  printf("    -p port        : server port, default: 10303\n");
-  printf("    -a address     : server address, default: 0.0.0.0\n");
   printf("    -c config      : path to the config file\n");
-  printf("    -t device      : serial device name\n");
-  printf("    -b baudrate    : baud-rate\n");
-  printf("    -d databits    : databits\n");
-  printf("    -s stopbit     : stopbit\n");
-  printf("    -r parity      : parity\n");
   printf("    -v             : show version info\n");
   printf("    -h             : print this help\n");
 }
 
-static void parse_options(int argc, char *argv[],
-                          SerialOverSocket::Config *pconf) {
+static void parse_options(int argc, char *argv[]) {
   int opt = 0, idx = 0;
-  const char *conf_path = nullptr;
+  string conf_path = string();
 
   while ((opt = getopt_long(argc, argv, optstr, opts, &idx)) != -1) {
     switch (opt) {
@@ -55,29 +41,8 @@ static void parse_options(int argc, char *argv[],
     case 'h':
       print_help(argv[0]);
       exit(EXIT_SUCCESS);
-    case 'a':
-      pconf->detail_.server.address = optarg;
-      break;
-    case 'p':
-      pconf->detail_.server.port = atoi(optarg);
-      break;
     case 'c':
       conf_path = optarg;
-      break;
-    case 't':
-      pconf->detail_.serial.devname = optarg;
-      break;
-    case 'b':
-      pconf->detail_.serial.baudrate = atoi(optarg);
-      break;
-    case 'd':
-      pconf->detail_.serial.databits = atoi(optarg);
-      break;
-    case 's':
-      pconf->detail_.serial.stopbit = atoi(optarg);
-      break;
-    case 'r':
-      pconf->detail_.serial.parity = optarg[0];
       break;
     case '?':
       printf("Unrecognized option: %s\n", optarg);
@@ -85,13 +50,8 @@ static void parse_options(int argc, char *argv[],
       exit(EXIT_FAILURE);
     }
   }
-  if (argc == 1 && conf_path == nullptr) {
-    conf_path = DEFAULT_CONFIG_PATH;
-  }
-  if (conf_path != nullptr) {
-    if (!pconf->load_config_file(conf_path)) {
-      exit(1);
-    }
+  if(!SerialOverSocket::Config::getInstance()->load_config_file(conf_path)) {
+    exit(1);
   }
 }
 
@@ -112,8 +72,7 @@ static void sig_handler(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-  SerialOverSocket::Config cfg;
-  parse_options(argc, argv, &cfg);
+  parse_options(argc, argv);
 
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
@@ -123,7 +82,7 @@ int main(int argc, char *argv[]) {
   signal(SIGABRT, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
   // signal(SIGUSR1, SIG_IGN);
-  SerialOverSocket::Server server(cfg.detail_);
+  SerialOverSocket::Server server;
   SerialOverSocket::IOLoop::getInstance().get()->start();
   return 0;
 }

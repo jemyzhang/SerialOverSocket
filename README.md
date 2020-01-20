@@ -22,15 +22,14 @@ make
 
 ```
 
-## TODO
+## RoadMap
 
 ### Server
-- password support
+[] password support  
+[x] snippet support and manager
 
 ### Client
-- log to file
-- change port configuration runtime
+[x] control+Q enter admin interface  
+[] log to file  
+[] change port configuration runtime
 
-## DONE
-### Client
-- control+Q enter admin interface
