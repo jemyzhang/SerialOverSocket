@@ -9,17 +9,11 @@ make
 
 ## Parameters
 ```
--c,--config             configure file path
--g,--generate           generate default configure file,
-                        if the configure file is not exists
--p,--port               port device
--b,--bandrate           baundrate
--d,--databits           databits
--s,--stopbit            stopbit
--r,--parity             parity
--l,--log                start log and log filepath
--h,--help               print out this help text
-
+-s             : run as server
+-c             : run as client
+-f config      : path to the config file
+-v             : show version info
+-h             : print this help
 ```
 
 ## RoadMap

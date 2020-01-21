@@ -182,9 +182,11 @@ void AdminConnection::cmd_processor() {
       } else if (args[0] == "snl") {
         string titles = Snippets::getInstance()->ls("  ");
         write_txbuf(titles);
+        write_txbuf("\n");
       } else if (args[0] == "snv" && args.size() > 1) {
         string contents = Snippets::getInstance()->cat(args[1], "  ");
         write_txbuf(contents);
+        write_txbuf("\n");
       } else if (args[0] == "snr" && args.size() > 1) {
         string contents = Snippets::getInstance()->cat(args[1]);
         transfer(contents.c_str(), contents.length());

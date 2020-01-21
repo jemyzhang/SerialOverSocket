@@ -5,29 +5,34 @@
 #include "config.h"
 #include "ioloop.h"
 #include "sockserver.h"
+#include "sockclient.h"
 #include <csignal>
 #include <getopt.h>
-#include <unistd.h>
-#include <pwd.h>
 
-#define SOS_SERVER_VER "1.0.0"
-static const char *optstr = "p:a:c:b:d:s:r:t:hv";
-static const struct option opts[] = {{"", required_argument, nullptr, 'c'},
+#define SOS_VERSION "1.0.0"
+static const char *optstr = "f:schv";
+static const struct option opts[] = {{"", required_argument, nullptr, 'f'},
+                                     {"", no_argument, nullptr, 's'},
+                                     {"", no_argument, nullptr, 'c'},
                                      {"", no_argument, nullptr, 'h'},
                                      {"", no_argument, nullptr, 'v'},
                                      {nullptr, no_argument, nullptr, 0}};
 
 static void print_version() {
-  printf("Serial Over Socket Server\n");
-  printf("version: %s\n", SOS_SERVER_VER);
+  printf("Serial Over Socket\n");
+  printf("version: %s\n", SOS_VERSION);
 }
 static void print_help(const char *prog) {
   printf("Usage: %s -p [port] [-hlv]\n\n", prog);
   printf("Options:\n");
-  printf("    -c config      : path to the config file\n");
+  printf("    -s             : run as server\n");
+  printf("    -c             : run as client\n");
+  printf("    -f config      : path to the config file\n");
   printf("    -v             : show version info\n");
   printf("    -h             : print this help\n");
 }
+
+static bool run_as_server = false;
 
 static void parse_options(int argc, char *argv[]) {
   int opt = 0, idx = 0;
@@ -42,6 +47,12 @@ static void parse_options(int argc, char *argv[]) {
       print_help(argv[0]);
       exit(EXIT_SUCCESS);
     case 'c':
+      run_as_server = false;
+      break;
+    case 's':
+      run_as_server = true;
+      break;
+    case 'f':
       conf_path = optarg;
       break;
     case '?':
@@ -82,7 +93,12 @@ int main(int argc, char *argv[]) {
   signal(SIGABRT, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
   // signal(SIGUSR1, SIG_IGN);
-  SerialOverSocket::Server server;
-  SerialOverSocket::IOLoop::getInstance().get()->start();
+  if (run_as_server) {
+    SerialOverSocket::Server server;
+    SerialOverSocket::IOLoop::getInstance().get()->start();
+  } else {
+    SerialOverSocket::Client client;
+    SerialOverSocket::IOLoop::getInstance().get()->start();
+  }
   return 0;
 }
