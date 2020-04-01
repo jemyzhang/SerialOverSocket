@@ -21,6 +21,7 @@ namespace SerialOverSocket {
   public:
     void set_location(string l) {location = l;}
     string ls(string prefix = string());
+    bool exists(string title);
     string cat(string title, string prefix = string());
 
   public:

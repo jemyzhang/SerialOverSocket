@@ -46,9 +46,17 @@ namespace SerialOverSocket {
     return titles.str();
   }
 
-  string Snippets::cat(string title, string prefix) {
+  bool Snippets::exists(string title) {
     if (location.empty() || title.empty()) {
-      return "location of snippets not defined";
+      return false;
+    }
+    string snip = location + "/" + title;
+    return access( snip.c_str(), F_OK ) != -1;
+  }
+
+  string Snippets::cat(string title, string prefix) {
+    if (!exists(title)) {
+      return "snippet not found";
     }
     string snip = location + "/" + title;
     ifstream fsnip(snip);

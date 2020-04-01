@@ -179,20 +179,22 @@ void AdminConnection::cmd_processor() {
       } else if (args[0] == "exit") {
         req_quit_ = true;
         write_txbuf("Bye!\n");
-      } else if (args[0] == "snl") {
+      } else if (args[0] == "ls") {
         string titles = Snippets::getInstance()->ls("  ");
         write_txbuf(titles);
         write_txbuf("\n");
-      } else if (args[0] == "snv" && args.size() > 1) {
+      } else if (args[0] == "cat" && args.size() > 1) {
         string contents = Snippets::getInstance()->cat(args[1], "  ");
         write_txbuf(contents);
         write_txbuf("\n");
-      } else if (args[0] == "snr" && args.size() > 1) {
-        string contents = Snippets::getInstance()->cat(args[1]);
-        transfer(contents.c_str(), contents.length());
-        transfer("\n", 1);
       } else {
-        write_txbuf("command not found!\n");
+        if (Snippets::getInstance()->exists(args[0])) {
+          string contents = Snippets::getInstance()->cat(args[0]);
+          transfer(contents.c_str(), contents.length());
+          transfer("\n", 1);
+        } else {
+          write_txbuf("command not found!\n");
+        }
       }
     }
     if(!req_quit_) {
@@ -209,9 +211,9 @@ void AdminConnection::cmd_processor() {
         "  connect    :  connect to serial port with the existing config\n"
         "  disconnect :  disconnect from serial port\n"
         "  reconnect  :  disconnect and then connect to serial port\n"
-        "  snl        :  list snippets\n"
-        "  snv [name] :  show contents of snippet\n"
-        "  snr [name] :  run snippet\n"
+        "  ls         :  list snippets\n"
+        "  cat <name> :  show contents of snippet\n"
+        "  <cmd>      :  run snippet\n"
         "  exit       :  exit the current client connection\n"
         "  help       :  print this help message\n"
         "\n"
