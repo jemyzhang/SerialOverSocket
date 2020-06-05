@@ -26,5 +26,5 @@ public:
 private:
   int fd_;
 };
-}
+} // namespace SerialOverSocket
 #endif // SERIAL_OVER_SOCKET_SOCKET_H

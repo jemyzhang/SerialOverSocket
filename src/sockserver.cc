@@ -178,9 +178,9 @@ int Server::handle(epoll_event e) {
 }
 
 Server::Server()
-  : cfg(ServerConfig::getInstance()),
-    server_socket_(cfg->server_address(), cfg->server_port()),
-    admin_socket_(cfg->server_address(), cfg->admin_port()) {
+    : cfg(ServerConfig::getInstance()),
+      server_socket_(cfg->server_address(), cfg->server_port()),
+      admin_socket_(cfg->server_address(), cfg->admin_port()) {
 
   server_socket_.setunblock();
   admin_socket_.setunblock();
@@ -213,4 +213,4 @@ void Server::OnSerialPortConnectionChanged(bool b, int fd) {
     }
   }
 }
-}
+} // namespace SerialOverSocket

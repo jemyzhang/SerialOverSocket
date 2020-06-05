@@ -2,17 +2,22 @@
 // Created by jemyzhang on 16-11-28.
 //
 
-#include "connection_server.h"
+#include <dirent.h>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <pwd.h>
+#include <sstream>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "ansi_color.h"
+#include "connection_server.h"
 #include "ioloop.h"
 #include "serialport.h"
 #include "snippets.h"
 #include "sockserver.h"
 #include "version.h"
-
-#include <iostream>
-#include <iterator>
-#include <sstream>
 
 using namespace std::placeholders;
 
@@ -110,21 +115,42 @@ void SerialPortConnection::received(const char *content, ssize_t length) {
   write_txbuf(content, length);
 }
 
+#define MGR_PROMPT_STR "MGR$ "
+#define MGR_PROMPT YELLOW MGR_PROMPT_STR NONE
 AdminConnection::AdminConnection(int fd, string host, string port)
     : Connection(fd, {CONNECTION_ADMIN, host + ":" + port, ""}),
       quit_(false), DataProxy::Client(DataProxy::Client::SOCK2SERIAL),
       processor_thread_(&AdminConnection::cmd_processor, this) {
+  history_.clear();
+  string histfile = string(getpwuid(getuid())->pw_dir) + "/.config/sos/history";
+  if (access(histfile.c_str(), F_OK) != -1) {
+    // load history
+    ifstream in(histfile);
+    string str;
+    while (getline(in, str))
+      history_.push_back(str);
+  }
+  history_idx_ = 0;
+  cursor_pos_ = 0;
   write_txbuf("\n");
   write_txbuf(GREEN "===---      Serial Over Socket     ---===\n");
   write_txbuf("===---   Control Panel " UNDERLINE VERSION GREEN "   ---===\n");
   write_txbuf(": Enter \"" YELLOW "help" GREEN "\" for usage hints\n");
-  write_txbuf(YELLOW "MGR$ " NONE);
+  write_txbuf(MGR_PROMPT);
 }
 
 AdminConnection::~AdminConnection() {
   std::unique_lock<std::mutex>(this->mutex_), (this->quit_ = true);
   condition_.notify_one();
   processor_thread_.join();
+  if (!history_.empty()) {
+    // save history
+    string histfile =
+        string(getpwuid(getuid())->pw_dir) + "/.config/sos/history";
+    ofstream of(histfile);
+    ostream_iterator<string> oiter(of, "\n");
+    copy(history_.begin(), history_.end(), oiter);
+  }
 }
 
 void AdminConnection::received(const char *content, ssize_t length) {
@@ -133,31 +159,102 @@ void AdminConnection::received(const char *content, ssize_t length) {
 
 ssize_t AdminConnection::write_rxbuf(const char *content, ssize_t length) {
   std::unique_lock<std::mutex> guard(mutex_);
+  bool echo = true;
   bool ignore = false;
-  // enable echo
-  write_txbuf(content, length);
   // assume input char by char
-  if (length == 1) {
+  if (length == 3) {
+    if (content[0] == 0x1b && content[1] == '[') {
+      int len_his = history_.size();
+      string str_his = string();
+      switch (content[2]) {
+      case 'A': // up
+      case 'B': // down
+        echo = false;
+        ignore = true;
+        if (history_.empty()) {
+          break;
+        }
+
+        write_txbuf(CLRLINE MGR_PROMPT);
+        cmdline_.clear();
+        cursor_pos_ = 0;
+        if (content[2] == 'A') {
+          history_idx_++;
+          if (history_idx_ > len_his) {
+            history_idx_ = len_his;
+          }
+        } else {
+          history_idx_--;
+        }
+        if (history_idx_ > 0) {
+          cmdline_ = history_.at(len_his - history_idx_);
+          write_txbuf(cmdline_);
+          cursor_pos_ = cmdline_.length();
+        }
+        break;
+      case 'C': // right
+        ignore = true;
+        if (cursor_pos_ < cmdline_.length()) {
+          cursor_pos_++;
+        } else {
+          echo = false;
+        }
+        break;
+      case 'D': // left
+        ignore = true;
+        if (cursor_pos_ > 0) {
+          cursor_pos_--;
+        } else {
+          echo = false;
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  } else if (length == 1) {
     switch (content[0]) {
     case '\n':
-      // write_txbuf("MGR$ ");
+      rxbuf_.append(cmdline_.c_str(), cmdline_.length());
+      rxbuf_.append(content, length);
+      condition_.notify_one();
+      cmdline_.clear();
+      cursor_pos_ = 0;
+      history_idx_ = 0;
+      write_txbuf(content, length);
+      return length;
+    case 0x3:
+      echo = false;
+      ignore = true;
+      cmdline_.clear();
+      cursor_pos_ = 0;
+      write_txbuf("\n" MGR_PROMPT);
       break;
     case 0x7f:
-      if (rxbuf_.remove_line_char()) {
+      ignore = true;
+      echo = false;
+      if (!cmdline_.empty() && cursor_pos_ > 0) {
+        cursor_pos_--;
+        cmdline_.erase(cursor_pos_, 1);
         write_txbuf(MOVE_LEFT(1) CLRAFTER);
       }
-      ignore = true;
       break;
     default:
       break;
     }
   }
 
-  if (ignore)
-    return length;
+  if (!ignore) {
+    cmdline_.insert(cursor_pos_, content, length);
+    cursor_pos_ += length;
+  }
 
-  rxbuf_.append(content, length);
-  condition_.notify_one();
+  write_txbuf(CLRLINE MGR_PROMPT);
+  write_txbuf(cmdline_);
+  char s[32];
+  sprintf(s, "\r\e[%ldC", cursor_pos_ + strlen(MGR_PROMPT_STR));
+  write_txbuf(s, strlen(s));
+
   return length;
 }
 
@@ -171,8 +268,14 @@ void AdminConnection::cmd_processor() {
       std::istream_iterator<std::string> begin(ss);
       std::istream_iterator<std::string> end;
       std::vector<std::string> args(begin, end);
+      bool save_history = true;
       if (args[0] == "help") {
         print_help();
+      } else if (args[0] == "history") {
+        for (auto &s : history_) {
+          write_txbuf(s);
+          write_txbuf("\n");
+        }
       } else if (args[0] == "disconnect") {
         SerialPort::getInstance()->disconnect();
       } else if (args[0] == "connect") {
@@ -227,12 +330,18 @@ void AdminConnection::cmd_processor() {
           transfer(contents.c_str(), contents.length());
           transfer("\n", 1);
         } else {
-          write_txbuf(BOLD_RED "command not found!\n" NONE);
+          write_txbuf(BOLD_RED);
+          write_txbuf(args[0]);
+          write_txbuf(": ");
+          write_txbuf("command not found!\n" NONE);
+          save_history = false;
         }
       }
+      if (save_history)
+        history_.push_back(cmd_input);
     }
     if (!req_quit_) {
-      write_txbuf(YELLOW "MGR$ " NONE);
+      write_txbuf(MGR_PROMPT);
     }
     if (quit_)
       break;
@@ -245,6 +354,7 @@ void AdminConnection::print_help() {
       "  connect    :  connect to serial port with the existing config\n"
       "  disconnect :  disconnect from serial port\n"
       "  reconnect  :  disconnect and then connect to serial port\n"
+      "  set        :  set baudrate/databits/parity/stopbit [options]\n"
       "  ls         :  list snippets\n"
       "  cat <name> :  show contents of snippet\n"
       "  <cmd>      :  run snippet\n"

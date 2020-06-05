@@ -60,6 +60,10 @@ private:
   condition_variable condition_;
   thread processor_thread_;
   bool quit_;
+  vector<string> history_;
+  int history_idx_;
+  string cmdline_;
+  int cursor_pos_;
 };
 
 class ConnectionManager {
@@ -78,6 +82,6 @@ private:
   vector<Connection *> connections_;
   mutex mutex_;
 };
-}
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_CONNECTION_SERVER_H

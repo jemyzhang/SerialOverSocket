@@ -108,7 +108,11 @@ Socket::Socket(const std::string ipaddr, int port, bool isclient) {
   }
 }
 
-Socket::~Socket() = default;
+Socket::~Socket() {
+  if (fd_) {
+    shutdown(fd_, SHUT_RDWR);
+  }
+}
 
 int Socket::setblocking(bool b_block) {
   return Socket::setblocking(this->fd_, b_block);
@@ -136,4 +140,4 @@ int Socket::setblocking(int fd, bool b_block) {
 
   return 0;
 }
-}
+} // namespace SerialOverSocket

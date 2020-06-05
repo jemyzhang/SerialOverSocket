@@ -162,9 +162,9 @@ void Client::switch_admin_connection(bool connect) {
   } else {
     if (admin_socket_) {
       cout << endl << YELLOW "Disconnecting from control panel..." NONE << endl;
-      admin_socket_.release();
       IOLoop::getInstance()->removeHandler(fd_);
       fd_ = client_fd_;
+      admin_socket_.reset();
       if (!client_buf.empty()) {
         // flush out the buffer
         write_rxbuf(client_buf.c_str(), client_buf.size());
