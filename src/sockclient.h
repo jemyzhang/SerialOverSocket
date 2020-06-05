@@ -39,8 +39,10 @@ private:
   Socket client_socket_;
   unique_ptr<Socket> admin_socket_;
   struct termios term_option_;
-  int client_fd_; // for backup
+  int client_fd_;    // for backup
+  string client_buf; // store input content from serial port while switched to
+                     // admin socket
 };
-}
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SOCKET_CLIENT_H

@@ -4,23 +4,22 @@
 
 #include "config.h"
 #include "ioloop.h"
-#include "sockserver.h"
 #include "sockclient.h"
+#include "sockserver.h"
 #include <csignal>
 #include <getopt.h>
 
-#define SOS_VERSION "1.0.0"
+#include "version.h"
+
 static const char *optstr = "f:schv";
-static const struct option opts[] = {{"", required_argument, nullptr, 'f'},
-                                     {"", no_argument, nullptr, 's'},
-                                     {"", no_argument, nullptr, 'c'},
-                                     {"", no_argument, nullptr, 'h'},
-                                     {"", no_argument, nullptr, 'v'},
-                                     {nullptr, no_argument, nullptr, 0}};
+static const struct option opts[] = {
+    {"", required_argument, nullptr, 'f'}, {"", no_argument, nullptr, 's'},
+    {"", no_argument, nullptr, 'c'},       {"", no_argument, nullptr, 'h'},
+    {"", no_argument, nullptr, 'v'},       {nullptr, no_argument, nullptr, 0}};
 
 static void print_version() {
   printf("Serial Over Socket\n");
-  printf("version: %s\n", SOS_VERSION);
+  printf("version: %s\n", VERSION);
 }
 static void print_help(const char *prog) {
   printf("Usage: %s -p [port] [-hlv]\n\n", prog);
@@ -61,7 +60,7 @@ static void parse_options(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
     }
   }
-  if(!SerialOverSocket::Config::getInstance()->load_config_file(conf_path)) {
+  if (!SerialOverSocket::Config::getInstance()->load_config_file(conf_path)) {
     exit(1);
   }
 }

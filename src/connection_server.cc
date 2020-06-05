@@ -3,10 +3,13 @@
 //
 
 #include "connection_server.h"
+#include "ansi_color.h"
 #include "ioloop.h"
 #include "serialport.h"
-#include "sockserver.h"
 #include "snippets.h"
+#include "sockserver.h"
+#include "version.h"
+
 #include <iostream>
 #include <iterator>
 #include <sstream>
@@ -108,14 +111,14 @@ void SerialPortConnection::received(const char *content, ssize_t length) {
 }
 
 AdminConnection::AdminConnection(int fd, string host, string port)
-    : Connection(fd, {CONNECTION_ADMIN, host + ":" + port, ""}), quit_(false),
-      DataProxy::Client(DataProxy::Client::SOCK2SERIAL),
+    : Connection(fd, {CONNECTION_ADMIN, host + ":" + port, ""}),
+      quit_(false), DataProxy::Client(DataProxy::Client::SOCK2SERIAL),
       processor_thread_(&AdminConnection::cmd_processor, this) {
   write_txbuf("\n");
-  write_txbuf("===---      Serial Over Socket     ---===\n");
-  write_txbuf("===---   Control Panel Ver." SERVER_VER "   ---===\n");
-  write_txbuf(": Enter \"help\" for usage hints\n");
-  write_txbuf("MGR$ ");
+  write_txbuf(GREEN "===---      Serial Over Socket     ---===\n");
+  write_txbuf("===---   Control Panel " UNDERLINE VERSION GREEN "   ---===\n");
+  write_txbuf(": Enter \"" YELLOW "help" GREEN "\" for usage hints\n");
+  write_txbuf(YELLOW "MGR$ " NONE);
 }
 
 AdminConnection::~AdminConnection() {
@@ -131,26 +134,27 @@ void AdminConnection::received(const char *content, ssize_t length) {
 ssize_t AdminConnection::write_rxbuf(const char *content, ssize_t length) {
   std::unique_lock<std::mutex> guard(mutex_);
   bool ignore = false;
-  //enable echo
-  write_txbuf(content,length);
+  // enable echo
+  write_txbuf(content, length);
   // assume input char by char
-  if(length == 1) {
-    switch(content[0]) {
-      case '\n':
-        //write_txbuf("MGR$ ");
-        break;
-      case 0x7f:
-        if(rxbuf_.remove_line_char()) {
-          write_txbuf("\33[1D\33[K");
-        }
-        ignore = true;
-        break;
-      default:
-        break;
+  if (length == 1) {
+    switch (content[0]) {
+    case '\n':
+      // write_txbuf("MGR$ ");
+      break;
+    case 0x7f:
+      if (rxbuf_.remove_line_char()) {
+        write_txbuf(MOVE_LEFT(1) CLRAFTER);
+      }
+      ignore = true;
+      break;
+    default:
+      break;
     }
   }
 
-  if(ignore) return length;
+  if (ignore)
+    return length;
 
   rxbuf_.append(content, length);
   condition_.notify_one();
@@ -161,7 +165,7 @@ void AdminConnection::cmd_processor() {
   for (;;) {
     std::unique_lock<std::mutex> guard(mutex_);
     condition_.wait(guard, [this]() { return rxbuf_.hasline() || quit_; });
-      string cmd_input;
+    string cmd_input;
     if (!(cmd_input = rxbuf_.popline()).empty()) {
       std::stringstream ss(cmd_input);
       std::istream_iterator<std::string> begin(ss);
@@ -193,31 +197,30 @@ void AdminConnection::cmd_processor() {
           transfer(contents.c_str(), contents.length());
           transfer("\n", 1);
         } else {
-          write_txbuf("command not found!\n");
+          write_txbuf(BOLD_RED "command not found!\n" NONE);
         }
       }
     }
-    if(!req_quit_) {
-      write_txbuf("MGR$ ");
+    if (!req_quit_) {
+      write_txbuf(YELLOW "MGR$ " NONE);
     }
     if (quit_)
       break;
   }
 }
 
-  void AdminConnection::print_help() {
-    string help_msg =
-        "\n"
-        "  connect    :  connect to serial port with the existing config\n"
-        "  disconnect :  disconnect from serial port\n"
-        "  reconnect  :  disconnect and then connect to serial port\n"
-        "  ls         :  list snippets\n"
-        "  cat <name> :  show contents of snippet\n"
-        "  <cmd>      :  run snippet\n"
-        "  exit       :  exit the current client connection\n"
-        "  help       :  print this help message\n"
-        "\n"
-    ;
-    write_txbuf(help_msg);
-  }
+void AdminConnection::print_help() {
+  string help_msg =
+      "\n"
+      "  connect    :  connect to serial port with the existing config\n"
+      "  disconnect :  disconnect from serial port\n"
+      "  reconnect  :  disconnect and then connect to serial port\n"
+      "  ls         :  list snippets\n"
+      "  cat <name> :  show contents of snippet\n"
+      "  <cmd>      :  run snippet\n"
+      "  exit       :  exit the current client connection\n"
+      "  help       :  print this help message\n"
+      "\n";
+  write_txbuf(help_msg);
 }
+} // namespace SerialOverSocket

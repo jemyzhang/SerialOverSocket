@@ -6,10 +6,11 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <sys/epoll.h>
 #include <unistd.h>
-#include <memory>
 
+#include "ansi_color.h"
 #include "ioloop.h"
 #include "sockclient.h"
 
@@ -38,13 +39,18 @@ int Client::input_data_handler(int fd) {
       break;
     } else {
       if (fd == fileno(stdin)) {
-        if(count == 1 && buf[0] == 0x11) {
+        if (count == 1 && buf[0] == 0x11) {
           // Ctrl+Q
           switch_admin_connection(!admin_socket_);
         } else {
           write_txbuf(buf, count);
         }
       } else {
+        if (fd == client_fd_ && admin_socket_) {
+          // store buffer while in admin mode
+          client_buf.append(buf, count);
+          continue;
+        }
         write_rxbuf(buf, count);
       }
     }
@@ -94,7 +100,8 @@ int Client::handle(epoll_event e) {
 Client::Client()
     : Connection(0, {Connection::CONNECTION_CLIENT, "", ""}),
       cfg(ClientConfig::getInstance()),
-      client_socket_(cfg->server_address(), cfg->server_port(), true){
+      client_socket_(cfg->server_address(), cfg->server_port(), true) {
+  client_buf.clear();
   if (client_socket_.fileno() < 0) {
     cerr << "failed to connect to the server: " << cfg->server_address() << ":"
          << cfg->server_port() << endl;
@@ -137,32 +144,33 @@ void Client::set_termio_mode() {
   tcsetattr(fileno(stdin), TCSAFLUSH, &options);
 }
 
-  void Client::switch_admin_connection(bool connect) {
-    if(connect) {
-      if(admin_socket_) {
-        return;
-      } else {
-        cout << endl << "Connecting to control panel..." << endl;
-        admin_socket_ = std::make_unique<Socket>(cfg->server_address(), cfg->admin_port(), true);
-        if(admin_socket_->fileno()) {
-          admin_socket_->setunblock();
-          IOLoop::getInstance()->removeHandler(fd_);
-          client_fd_ = fd_;
-          fd_ = admin_socket_->fileno();
-          IOLoop::getInstance()->addHandler(fd_, this,
-                                            EPOLLIN | EPOLLET);
-        }
-      }
+void Client::switch_admin_connection(bool connect) {
+  if (connect) {
+    if (admin_socket_) {
+      return;
     } else {
-      if(admin_socket_) {
-        cout << endl << "Disconnecting from control panel..." << endl;
-        admin_socket_.release();
-        IOLoop::getInstance()->removeHandler(fd_);
-        IOLoop::getInstance()->addHandler(client_fd_, this,
-                                          EPOLLIN | EPOLLET);
-        fd_ = client_fd_;
+      cout << endl << YELLOW "Connecting to control panel..." NONE << endl;
+      admin_socket_ = std::make_unique<Socket>(cfg->server_address(),
+                                               cfg->admin_port(), true);
+      if (admin_socket_->fileno()) {
+        admin_socket_->setunblock();
+        client_fd_ = fd_;
+        fd_ = admin_socket_->fileno();
+        IOLoop::getInstance()->addHandler(fd_, this, EPOLLIN | EPOLLET);
       }
     }
-
+  } else {
+    if (admin_socket_) {
+      cout << endl << YELLOW "Disconnecting from control panel..." NONE << endl;
+      admin_socket_.release();
+      IOLoop::getInstance()->removeHandler(fd_);
+      fd_ = client_fd_;
+      if (!client_buf.empty()) {
+        // flush out the buffer
+        write_rxbuf(client_buf.c_str(), client_buf.size());
+        client_buf.clear();
+      }
+    }
   }
 }
+} // namespace SerialOverSocket

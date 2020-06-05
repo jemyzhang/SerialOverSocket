@@ -11,8 +11,6 @@
 #include "socket.h"
 #include <vector>
 
-#define SERVER_VER "1.0.0"
-
 using namespace std;
 
 namespace SerialOverSocket {
@@ -41,6 +39,6 @@ private:
   Socket admin_socket_;
   ConnectionManager *pcmgr_;
 };
-}
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SOCKSERVER_H
