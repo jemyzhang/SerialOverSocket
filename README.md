@@ -24,6 +24,6 @@ make
 
 ### Client
 [x] control+Q enter admin interface  
+[x] change port configuration runtime
 [] log to file  
-[] change port configuration runtime
 

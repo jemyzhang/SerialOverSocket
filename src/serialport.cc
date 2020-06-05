@@ -40,6 +40,88 @@ SerialPort::~SerialPort() {
   callback_.clear();
 }
 
+bool SerialPort::set_baudrate(int baudrate, bool instantly) {
+  if (fd_ < 0)
+    return false;
+  for (int i = 0; i < sizeof(baudrate_pairs) / sizeof(baudrate_pairs[0]); i++) {
+    if (baudrate == baudrate_pairs[i].baudrate) {
+      cfsetispeed(&options_, baudrate_pairs[i].speed);
+      cfsetospeed(&options_, baudrate_pairs[i].speed);
+      return instantly ? tcsetattr(fd_, TCSANOW, &options_) == 0 : true;
+    }
+  }
+  return false;
+}
+
+bool SerialPort::set_databits(int databits, bool instantly) {
+  if (fd_ < 0)
+    return false;
+  switch (databits) {
+  case 7:
+    options_.c_cflag |= CS7;
+    break;
+  case 8:
+    options_.c_cflag |= CS8;
+    break;
+  default:
+    return false;
+  }
+  return instantly ? tcsetattr(fd_, TCSANOW, &options_) == 0 : true;
+}
+
+bool SerialPort::set_parity(char parity, bool instantly) {
+  if (fd_ < 0)
+    return false;
+  switch (parity) {
+  case 'n':
+  case 'N':
+    options_.c_cflag &= ~PARENB; /* Clear parity enable */
+    options_.c_iflag &= ~INPCK;  /* Enable parity checking */
+    break;
+  case 'o':
+  case 'O':
+    options_.c_cflag |= (PARODD | PARENB);
+    options_.c_iflag |= INPCK; /* Disable parity checking */
+    break;
+  case 'e':
+  case 'E':
+    options_.c_cflag |= PARENB; /* Enable parity */
+    options_.c_cflag &= ~PARODD;
+    options_.c_iflag |= INPCK; /* Disable parity checking */
+    break;
+  case 'S':
+  case 's': /*as no parity*/
+    options_.c_cflag &= ~PARENB;
+    options_.c_cflag &= ~CSTOPB;
+    break;
+  default:
+    return false;
+  }
+  /* Set input parity option */
+  if (parity != 'n') {
+    options_.c_iflag |= INPCK;
+  }
+  return instantly ? tcsetattr(fd_, TCSANOW, &options_) == 0 : true;
+}
+
+bool SerialPort::set_stopbit(char stopbit, bool instantly) {
+  if (fd_ < 0)
+    return false;
+  return true;
+  /* Set stopbit*/
+  switch (stopbit) {
+  case 1:
+    options_.c_cflag &= ~CSTOPB;
+    break;
+  case 2:
+    options_.c_cflag |= CSTOPB;
+    break;
+  default:
+    return false;
+  }
+  return instantly ? tcsetattr(fd_, TCSANOW, &options_) == 0 : true;
+}
+
 int SerialPort::connect(shared_ptr<ServerConfig> cfg) {
   if (fd_ > 0)
     return fd_;
@@ -48,97 +130,48 @@ int SerialPort::connect(shared_ptr<ServerConfig> cfg) {
 
   int fd;
   int i;
-  struct termios options {};
 
   if ((fd = open(cfg->serial_device().c_str(), O_RDWR | O_NONBLOCK)) <= 0) {
     perror("serial port open");
     return -1;
   }
 
+  fd_ = fd;
+
   try {
-    if (tcgetattr(fd, &options) != 0) {
+    if (tcgetattr(fd, &options_) != 0) {
       throw("failed to get tc attr");
     }
 
     // set to raw mode
-    cfmakeraw(&options);
+    cfmakeraw(&options_);
 
-    bool baudrate_valid = false;
-    for (i = 0; i < sizeof(baudrate_pairs) / sizeof(baudrate_pairs[0]); i++) {
-      if (cfg->serial_baudrate() == baudrate_pairs[i].baudrate) {
-        cfsetispeed(&options, baudrate_pairs[i].speed);
-        cfsetospeed(&options, baudrate_pairs[i].speed);
-        baudrate_valid = true;
-        break;
-      }
-    }
-    if (!baudrate_valid) {
+    if (!set_baudrate(cfg->serial_baudrate())) {
       throw("Unsupported baudrate");
     }
 
-    options.c_cflag &= ~CSIZE;
-    switch (cfg->serial_databits()) {
-    case 7:
-      options.c_cflag |= CS7;
-      break;
-    case 8:
-      options.c_cflag |= CS8;
-      break;
-    default:
+    options_.c_cflag &= ~CSIZE;
+    if (!set_databits(cfg->serial_databits())) {
       throw("Unsupported data bits");
     }
-    switch (cfg->serial_parity()) {
-    case 'n':
-    case 'N':
-      options.c_cflag &= ~PARENB; /* Clear parity enable */
-      options.c_iflag &= ~INPCK;  /* Enable parity checking */
-      break;
-    case 'o':
-    case 'O':
-      options.c_cflag |= (PARODD | PARENB);
-      options.c_iflag |= INPCK; /* Disable parity checking */
-      break;
-    case 'e':
-    case 'E':
-      options.c_cflag |= PARENB; /* Enable parity */
-      options.c_cflag &= ~PARODD;
-      options.c_iflag |= INPCK; /* Disable parity checking */
-      break;
-    case 'S':
-    case 's': /*as no parity*/
-      options.c_cflag &= ~PARENB;
-      options.c_cflag &= ~CSTOPB;
-      break;
-    default:
+
+    if (!set_parity(cfg->serial_parity())) {
       throw("Unsupported parity");
     }
-    /* Set input parity option */
-    if (cfg->serial_parity() != 'n') {
-      options.c_iflag |= INPCK;
-    }
     /* Set stopbit*/
-    switch (cfg->serial_stopbit()) {
-    case 1:
-      options.c_cflag &= ~CSTOPB;
-      break;
-    case 2:
-      options.c_cflag |= CSTOPB;
-      break;
-    default:
+    if (!set_stopbit(cfg->serial_stopbit())) {
       throw("Unsupported stopbit");
     }
 
     tcflush(fd, TCIOFLUSH);
     tcflush(fd, TCIFLUSH);
 
-    options.c_cc[VTIME] = 150; /* set timeout: 15 seconds*/
-    options.c_cc[VMIN] = 0;    /* Update the options and do it NOW */
+    options_.c_cc[VTIME] = 150; /* set timeout: 15 seconds*/
+    options_.c_cc[VMIN] = 0;    /* Update the options and do it NOW */
 
-    if (tcsetattr(fd, TCSANOW, &options) != 0) {
+    if (tcsetattr(fd, TCSANOW, &options_) != 0) {
       throw("failed setup serial port");
     }
-
-    fd_ = fd;
 
     for (auto &c : callback_) {
       c(true, fd);

@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <termios.h>
 #include <vector>
 
 using namespace std;
@@ -32,6 +33,11 @@ public:
 
   int fileno() { return fd_; }
 
+  bool set_baudrate(int baudrate, bool instantly = false);
+  bool set_databits(int databits, bool instantly = false);
+  bool set_parity(char parity, bool instantly = false);
+  bool set_stopbit(char stopbit, bool instantly = false);
+
   void InstallStatusCallback(const OnStatusChangedCallback &callback) {
     callback_.insert(callback_.begin(), callback);
   }
@@ -44,7 +50,8 @@ private:
   shared_ptr<ServerConfig> cfg_;
   vector<OnStatusChangedCallback> callback_;
   static shared_ptr<SerialPort> instance_;
+  struct termios options_;
 };
-}
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SERIALPORT_H

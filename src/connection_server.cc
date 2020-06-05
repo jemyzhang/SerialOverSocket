@@ -179,7 +179,37 @@ void AdminConnection::cmd_processor() {
         SerialPort::getInstance()->connect();
       } else if (args[0] == "reconnect") {
         SerialPort::getInstance()->reconnect();
-      } else if (args[0] == "config") {
+      } else if (args[0] == "set") {
+        if (args.size() < 3) {
+          write_txbuf(
+              BOLD_BLUE
+              "usage: set baudrate/databits/parity/stopbit [options]\n" NONE);
+        } else {
+          bool ret = false;
+          bool not_supported = false;
+          try {
+            if (args[1] == "baudrate") {
+              ret =
+                  SerialPort::getInstance()->set_baudrate(stoi(args[2]), true);
+            } else if (args[1] == "databits") {
+              ret =
+                  SerialPort::getInstance()->set_databits(stoi(args[2]), true);
+            } else if (args[1] == "parity") {
+              ret = SerialPort::getInstance()->set_parity(stoi(args[2]), true);
+            } else if (args[2] == "stopbit") {
+              ret = SerialPort::getInstance()->set_stopbit(stoi(args[2]), true);
+            } else {
+              write_txbuf(BOLD_RED "action not supported\n" NONE);
+              not_supported = true;
+            }
+            if (!not_supported) {
+              write_txbuf(ret ? BOLD_GREEN "OK\n" NONE
+                              : BOLD_RED "FAIL\n" NONE);
+            }
+          } catch (std::invalid_argument) {
+            write_txbuf(BOLD_RED "FAIL\n" NONE);
+          }
+        }
       } else if (args[0] == "exit") {
         req_quit_ = true;
         write_txbuf("Bye!\n");
