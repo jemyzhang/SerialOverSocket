@@ -107,7 +107,6 @@ bool SerialPort::set_parity(char parity, bool instantly) {
 bool SerialPort::set_stopbit(char stopbit, bool instantly) {
   if (fd_ < 0)
     return false;
-  return true;
   /* Set stopbit*/
   switch (stopbit) {
   case 1:

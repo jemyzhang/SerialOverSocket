@@ -9,6 +9,7 @@
 #include <netdb.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "ioloop.h"
@@ -90,7 +91,7 @@ int Server::input_data_handler(int fd) {
 
   while (true) {
     ssize_t count;
-    char buf[128];
+    char buf[1];
     memset(buf, 0, sizeof(buf));
 
     count = read(fd, buf, sizeof buf);
@@ -109,7 +110,22 @@ int Server::input_data_handler(int fd) {
       break;
     } else {
       if (pconn) {
-        pconn->write_rxbuf(buf, count);
+        if (pconn->type() == Connection::CONNECTION_SERIAL &&
+                buf[0] == '\n' && SerialPort::getInstance()->timestamp_enabled()) {
+                struct tm *tm_info;
+                struct timeval tv;
+                char tsbuf[128];
+                gettimeofday(&tv, NULL);
+                tm_info = localtime(&tv.tv_sec);
+                sprintf(tsbuf,
+                        "\n\x1b[37;44m[%04d-%02d-%02d %02d:%02d:%02d.%03ld]\x1b[0m ",
+                        (1900 + tm_info->tm_year), tm_info->tm_mon, tm_info->tm_mday,
+                        tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec,
+                        tv.tv_usec / 1000);
+                pconn->write_rxbuf(tsbuf, strlen(tsbuf));
+        } else {
+          pconn->write_rxbuf(buf, count);
+        }
       }
     }
   }

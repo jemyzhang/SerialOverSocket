@@ -324,6 +324,8 @@ void AdminConnection::cmd_processor() {
         string contents = Snippets::getInstance()->cat(args[1], "  ");
         write_txbuf(contents);
         write_txbuf("\n");
+      } else if (args[0] == "ts") {
+        SerialPort::getInstance()->toggle_timestamp();
       } else {
         if (Snippets::getInstance()->exists(args[0])) {
           string contents = Snippets::getInstance()->cat(args[0]);
@@ -355,6 +357,7 @@ void AdminConnection::print_help() {
       "  disconnect :  disconnect from serial port\n"
       "  reconnect  :  disconnect and then connect to serial port\n"
       "  set        :  set baudrate/databits/parity/stopbit [options]\n"
+      "  ts         :  enable/disable timestamp"
       "  ls         :  list snippets\n"
       "  cat <name> :  show contents of snippet\n"
       "  <cmd>      :  run snippet\n"
