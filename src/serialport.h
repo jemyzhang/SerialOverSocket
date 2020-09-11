@@ -42,9 +42,6 @@ public:
     callback_.insert(callback_.begin(), callback);
   }
 
-  bool timestamp_enabled() {return timestamp_;}
-  void toggle_timestamp() {timestamp_ = !timestamp_;}
-
 public:
   static shared_ptr<SerialPort> getInstance();
 
@@ -54,7 +51,6 @@ private:
   vector<OnStatusChangedCallback> callback_;
   static shared_ptr<SerialPort> instance_;
   struct termios options_;
-  bool timestamp_;
 };
 } // namespace SerialOverSocket
 

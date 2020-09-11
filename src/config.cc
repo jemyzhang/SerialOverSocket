@@ -5,6 +5,7 @@
 #include "config.h"
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <unistd.h>
 #include <pwd.h>
 
@@ -26,6 +27,7 @@ namespace SerialOverSocket {
         struct passwd *pw = getpwuid(getuid());
         filename = string(pw->pw_dir) + "/.config/sos/config.json";
       }
+      cfgfile = filename;
       ifstream stream_json(filename);
       if (!stream_json.is_open()) {
         throw ("config file not found");
@@ -87,6 +89,21 @@ namespace SerialOverSocket {
     shared_ptr<Config> base = Config::getInstance();
     return static_pointer_cast<ServerConfig>(base);
   }
+
+  bool ServerConfig::timestamp() {
+    bool value = false;
+    try {
+        json node = configs.at(json::json_pointer("/serialport/timestamp"));
+        if(!node.empty()) {
+            value = node.get<bool>();
+        }
+    } catch (...) {
+        timestamp(value);
+    }
+    return value;
+
+  }
+
   string ServerConfig::serial_device() {
     json node = configs.at(json::json_pointer("/serialport/device"));
     string value = "/dev/ttyUSB0";
@@ -128,6 +145,80 @@ namespace SerialOverSocket {
       value = node.get<string>();
     }
     return value.at(0);
+  }
+
+  void ServerConfig::timestamp(bool t){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/timestamp")];
+          j = t;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::serial_device(string dev){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/device")];
+          j = dev;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::serial_baudrate(int b){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/baudrate")];
+          j = b;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::serial_databits(int d){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/databits")];
+          j = d;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::serial_stopbit(int s){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/stopbit")];
+          j = s;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::serial_parity(char p){
+      json backup = configs;
+      try {
+          json &j = configs[json::json_pointer("/serialport/parity")];
+          string s(1,p);
+          j = s;
+      } catch (...) {
+          configs = backup;
+      }
+  }
+
+  void ServerConfig::save(){
+      try {
+          ofstream stream_json(cfgfile);
+          if(!stream_json.is_open()) {
+              throw("failed to open config file");
+          }
+          stream_json << setw(4) << configs << endl;
+      } catch (const char *str) {
+          cerr << str << endl;
+      }
+
   }
 
   shared_ptr<ClientConfig> ClientConfig::getInstance() {

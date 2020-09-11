@@ -34,6 +34,7 @@ namespace SerialOverSocket {
     static shared_ptr<Config> instance_;
   protected:
     json configs;
+    string cfgfile;
   };
 
   class ServerConfig : public Config {
@@ -45,11 +46,22 @@ namespace SerialOverSocket {
     static shared_ptr<ServerConfig> getInstance();
 
   public:
+    // get
     string serial_device();
     int serial_baudrate();
     int serial_databits();
     int serial_stopbit();
     char serial_parity();
+    bool timestamp();
+    // set
+    void serial_device(string);
+    void serial_baudrate(int);
+    void serial_databits(int);
+    void serial_stopbit(int);
+    void serial_parity(char);
+    void timestamp(bool);
+    // save
+    void save();
   };
 
   class ClientConfig : public Config {

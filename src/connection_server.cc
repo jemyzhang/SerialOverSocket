@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "ansi_color.h"
+#include "config.h"
 #include "connection_server.h"
 #include "ioloop.h"
 #include "serialport.h"
@@ -292,15 +293,31 @@ void AdminConnection::cmd_processor() {
           bool not_supported = false;
           try {
             if (args[1] == "baudrate") {
+              int v = stoi(args[2]);
               ret =
-                  SerialPort::getInstance()->set_baudrate(stoi(args[2]), true);
+                  SerialPort::getInstance()->set_baudrate(v, true);
+              if (ret) {
+                ServerConfig::getInstance()->serial_baudrate(v);
+              }
             } else if (args[1] == "databits") {
+              int v = stoi(args[2]);
               ret =
-                  SerialPort::getInstance()->set_databits(stoi(args[2]), true);
+                  SerialPort::getInstance()->set_databits(v, true);
+              if (ret) {
+                ServerConfig::getInstance()->serial_databits(v);
+              }
             } else if (args[1] == "parity") {
-              ret = SerialPort::getInstance()->set_parity(stoi(args[2]), true);
+              char v = stoi(args[2]);
+              ret = SerialPort::getInstance()->set_parity(v, true);
+              if (ret) {
+                ServerConfig::getInstance()->serial_parity(v);
+              }
             } else if (args[2] == "stopbit") {
-              ret = SerialPort::getInstance()->set_stopbit(stoi(args[2]), true);
+              int v = stoi(args[2]);
+              ret = SerialPort::getInstance()->set_stopbit(v, true);
+              if (ret) {
+                ServerConfig::getInstance()->serial_stopbit(v);
+              }
             } else {
               write_txbuf(BOLD_RED "action not supported\n" NONE);
               not_supported = true;
@@ -313,6 +330,9 @@ void AdminConnection::cmd_processor() {
             write_txbuf(BOLD_RED "FAIL\n" NONE);
           }
         }
+      } else if (args[0] == "save") {
+        ServerConfig::getInstance()->save();
+        write_txbuf("Saved!\n");
       } else if (args[0] == "exit") {
         req_quit_ = true;
         write_txbuf("Bye!\n");
@@ -325,7 +345,13 @@ void AdminConnection::cmd_processor() {
         write_txbuf(contents);
         write_txbuf("\n");
       } else if (args[0] == "ts") {
-        SerialPort::getInstance()->toggle_timestamp();
+        bool t = ServerConfig::getInstance()->timestamp();
+        ServerConfig::getInstance()->timestamp(!t);
+        t = ServerConfig::getInstance()->timestamp();
+        write_txbuf("Show timestamp: ");
+        write_txbuf(t ? BOLD_GREEN "ON" NONE :
+                        BOLD_RED "OFF" NONE);
+        write_txbuf("\n");
       } else {
         if (Snippets::getInstance()->exists(args[0])) {
           string contents = Snippets::getInstance()->cat(args[0]);
@@ -357,6 +383,7 @@ void AdminConnection::print_help() {
       "  disconnect :  disconnect from serial port\n"
       "  reconnect  :  disconnect and then connect to serial port\n"
       "  set        :  set baudrate/databits/parity/stopbit [options]\n"
+      "  save       :  save configuration\n"
       "  ts         :  enable/disable timestamp"
       "  ls         :  list snippets\n"
       "  cat <name> :  show contents of snippet\n"

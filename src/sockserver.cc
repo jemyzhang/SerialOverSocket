@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "ioloop.h"
 #include "serialport.h"
 #include "socket.h"
@@ -111,7 +112,7 @@ int Server::input_data_handler(int fd) {
     } else {
       if (pconn) {
         if (pconn->type() == Connection::CONNECTION_SERIAL &&
-                buf[0] == '\n' && SerialPort::getInstance()->timestamp_enabled()) {
+                buf[0] == '\n' && ServerConfig::getInstance()->timestamp()) {
                 struct tm *tm_info;
                 struct timeval tv;
                 char tsbuf[128];
