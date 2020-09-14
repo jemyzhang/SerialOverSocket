@@ -91,11 +91,15 @@ int Server::input_data_handler(int fd) {
   Connection *pconn = pcmgr_->find(fd);
 
   while (true) {
-    ssize_t count;
-    char buf[1];
-    memset(buf, 0, sizeof(buf));
+    ssize_t count, readbytes;
+    char buf[128];
+    if (pconn->type() == Connection::CONNECTION_SERIAL) {
+      readbytes = 1;
+    } else {
+      readbytes = sizeof(buf);
+    }
 
-    count = read(fd, buf, sizeof buf);
+    count = read(fd, buf, readbytes);
     if (count == -1) {
       /* If errno == EAGAIN, that means we have read all
          data. So go back to the main loop. */
