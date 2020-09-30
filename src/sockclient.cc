@@ -12,6 +12,7 @@
 #include <pwd.h>
 #include <sstream>
 #include <fstream>
+#include <fcntl.h>
 
 #include "ansi_color.h"
 #include "ioloop.h"
@@ -30,9 +31,41 @@ namespace SerialOverSocket {
        "  cat <name> :  show contents of snippet\n"
        "  exit       :  exit the current client connection\n"
        "  <cmd>      :  run snippet\n"
+       "  log        : show current log status\n"
+       "      start <file> : start log to file\n"
+       "      stop         : stop log without file parameter\n"
        "  help       :  print this help message\n";
     cout << help_msg;
   }
+
+  void Client::start_log(string path) {
+    if (log_fd_ > 0) {
+      cout << "log file switch to " << path << endl;
+      int fd = log_fd_;
+      log_fd_ = -1;
+      close(fd);
+    }
+    int fd = open(path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
+    if (fd == -1) {
+      cout << "error start log, failed to open file " << path << strerror(errno) << endl;
+      return;
+    }
+    log_fd_ = fd;
+    log_file_ = path;
+    cout << "log started" << endl;
+  }
+
+  void Client::stop_log() {
+    if (log_fd_ > 0) {
+      int fd = log_fd_;
+      log_fd_ = -1;
+      close(fd);
+      log_file_ = "";
+      cout << "log stopped" << endl;
+    } else {
+      cout << "log not started, start log with `log /path/to/file`" << endl;
+    }
+  };
 
   void Client::handle_cmd(string cmd) {
     std::stringstream ss(cmd);
@@ -57,6 +90,20 @@ namespace SerialOverSocket {
     } else if (args[0] == "cat" && args.size() > 1) {
       string contents = Snippets::getInstance()->cat(args[1], "  ");
       cout << contents << endl;
+    } else if (args[0] == "log") {
+      if (args.size() > 1) {
+        if (args[1] == "start" && args.size() > 2) {
+          start_log(args[2]);
+        } else if (args[1] == "stop") {
+          stop_log();
+        }
+      } else {
+        if (log_fd_ > 0) {
+          cout << "logging to file: " << log_file_ << endl;
+        } else {
+          cout << "log not started" << endl;
+        }
+      }
     } else {
       if (Snippets::getInstance()->exists(args[0])) {
         // disconnect from control panel and run snippets
@@ -289,6 +336,7 @@ namespace SerialOverSocket {
       exit(1);
     }
 
+    log_fd_ = -1;
     client_fd_ = fd_ = client_socket_.fileno();
     client_socket_.setunblock();
 
@@ -301,6 +349,11 @@ namespace SerialOverSocket {
   }
 
   Client::~Client() {
+    if (log_fd_ > 0) {
+      int fd = log_fd_;
+      log_fd_ = -1;
+      close(fd);
+    }
     if (!history_.empty()) {
       // save history
       string histfile =
@@ -313,6 +366,9 @@ namespace SerialOverSocket {
   }
 
   ssize_t Client::write_rxbuf(const char *content, ssize_t length) {
+    if (log_fd_ > 0) {
+      write(log_fd_, content, length);
+    }
     return write(fileno(stdout), content, length);
   }
 

@@ -56,6 +56,13 @@ namespace SerialOverSocket {
     int history_idx_;
     string cmdline_;
     int cursor_pos_;
+  private:
+    void start_log(string path);
+
+    void stop_log();
+
+    int log_fd_;
+    string log_file_;
   };
 } // namespace SerialOverSocket
 
