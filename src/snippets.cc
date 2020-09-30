@@ -40,7 +40,7 @@ namespace SerialOverSocket {
       }
       closedir(dir);
     } else {
-      return "snippets dir not exits";
+      return "snippets dir not exists";
     }
     return titles.str();
   }
