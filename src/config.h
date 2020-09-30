@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include <json.hpp>
+
 using namespace std;
 using namespace nlohmann;
 
@@ -16,6 +17,7 @@ namespace SerialOverSocket {
   class Config {
   public:
     Config() = default;
+
     ~Config() = default;
 
   public:
@@ -23,8 +25,11 @@ namespace SerialOverSocket {
 
   public:
     string server_address();
+
     int server_port();
+
     int admin_port();
+
     string admin_password();
 
   public:
@@ -40,6 +45,7 @@ namespace SerialOverSocket {
   class ServerConfig : public Config {
   public:
     ServerConfig() = default;
+
     ~ServerConfig() = default;
 
   public:
@@ -48,18 +54,30 @@ namespace SerialOverSocket {
   public:
     // get
     string serial_device();
+
     int serial_baudrate();
+
     int serial_databits();
+
     int serial_stopbit();
+
     char serial_parity();
+
     bool timestamp();
+
     // set
     void serial_device(string);
+
     void serial_baudrate(int);
+
     void serial_databits(int);
+
     void serial_stopbit(int);
+
     void serial_parity(char);
+
     void timestamp(bool);
+
     // save
     void save();
   };
@@ -70,6 +88,7 @@ namespace SerialOverSocket {
 
   public:
     ClientConfig() = default;
+
     ~ClientConfig() = default;
   };
 } // namespace SerialOverSocket

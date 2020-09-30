@@ -8,7 +8,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <pwd.h>
-#include <sys/types.h>
 #include <dirent.h>
 
 using namespace std;
@@ -35,11 +34,11 @@ namespace SerialOverSocket {
     stringstream titles;
     if ((dir = opendir(location.c_str())) != NULL) {
       while ((ent = readdir(dir)) != NULL) {
-        if(ent->d_type == DT_REG) {
+        if (ent->d_type == DT_REG) {
           titles << prefix << ent->d_name << endl;
         }
       }
-      closedir (dir);
+      closedir(dir);
     } else {
       return "snippets dir not exits";
     }
@@ -51,7 +50,7 @@ namespace SerialOverSocket {
       return false;
     }
     string snip = location + "/" + title;
-    return access( snip.c_str(), F_OK ) != -1;
+    return access(snip.c_str(), F_OK) != -1;
   }
 
   string Snippets::cat(string title, string prefix) {
@@ -65,7 +64,7 @@ namespace SerialOverSocket {
     }
     string l;
     stringstream contents;
-    while(getline(fsnip, l)) {
+    while (getline(fsnip, l)) {
       contents << prefix << l << endl;
     }
     fsnip.close();

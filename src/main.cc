@@ -13,14 +13,18 @@
 
 static const char *optstr = "f:schv";
 static const struct option opts[] = {
-    {"", required_argument, nullptr, 'f'}, {"", no_argument, nullptr, 's'},
-    {"", no_argument, nullptr, 'c'},       {"", no_argument, nullptr, 'h'},
-    {"", no_argument, nullptr, 'v'},       {nullptr, no_argument, nullptr, 0}};
+   {"",      required_argument, nullptr, 'f'},
+   {"",      no_argument,       nullptr, 's'},
+   {"",      no_argument,       nullptr, 'c'},
+   {"",      no_argument,       nullptr, 'h'},
+   {"",      no_argument,       nullptr, 'v'},
+   {nullptr, no_argument,       nullptr, 0}};
 
 static void print_version() {
   printf("Serial Over Socket\n");
   printf("version: %s\n", VERSION);
 }
+
 static void print_help(const char *prog) {
   printf("Usage: %s -p [port] [-hlv]\n\n", prog);
   printf("Options:\n");
@@ -39,25 +43,25 @@ static void parse_options(int argc, char *argv[]) {
 
   while ((opt = getopt_long(argc, argv, optstr, opts, &idx)) != -1) {
     switch (opt) {
-    case 'v':
-      print_version();
-      exit(EXIT_SUCCESS);
-    case 'h':
-      print_help(argv[0]);
-      exit(EXIT_SUCCESS);
-    case 'c':
-      run_as_server = false;
-      break;
-    case 's':
-      run_as_server = true;
-      break;
-    case 'f':
-      conf_path = optarg;
-      break;
-    case '?':
-      printf("Unrecognized option: %s\n", optarg);
-      print_help(argv[0]);
-      exit(EXIT_FAILURE);
+      case 'v':
+        print_version();
+        exit(EXIT_SUCCESS);
+      case 'h':
+        print_help(argv[0]);
+        exit(EXIT_SUCCESS);
+      case 'c':
+        run_as_server = false;
+        break;
+      case 's':
+        run_as_server = true;
+        break;
+      case 'f':
+        conf_path = optarg;
+        break;
+      case '?':
+        printf("Unrecognized option: %s\n", optarg);
+        print_help(argv[0]);
+        exit(EXIT_FAILURE);
     }
   }
   if (!SerialOverSocket::Config::getInstance()->load_config_file(conf_path)) {
@@ -67,17 +71,17 @@ static void parse_options(int argc, char *argv[]) {
 
 static void sig_handler(int sig) {
   switch (sig) {
-  case SIGINT:
-  case SIGTERM:
-    printf("sig term/int\n");
-    exit(0);
-    break;
-  case SIGPIPE:
-    printf("sigpipe received\n");
-    break;
-  default:
-    printf("signal %d\n", sig);
-    break;
+    case SIGINT:
+    case SIGTERM:
+      printf("sig term/int\n");
+      exit(0);
+      break;
+    case SIGPIPE:
+      printf("sigpipe received\n");
+      break;
+    default:
+      printf("signal %d\n", sig);
+      break;
   }
 }
 

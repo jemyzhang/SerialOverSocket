@@ -7,21 +7,26 @@
 
 #include <string>
 #include <memory>
+
 using namespace std;
 
 namespace SerialOverSocket {
   class Snippets {
   public:
     Snippets() = default;
+
     ~Snippets() = default;
 
   public:
     static shared_ptr<Snippets> getInstance();
 
   public:
-    void set_location(string l) {location = l;}
+    void set_location(string l) { location = l; }
+
     string ls(string prefix = string());
+
     bool exists(string title);
+
     string cat(string title, string prefix = string());
 
   public:

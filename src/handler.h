@@ -8,14 +8,14 @@
 #include <sys/epoll.h>
 
 namespace SerialOverSocket {
-class Handler {
-public:
-  Handler();
+  class Handler {
+  public:
+    Handler();
 
-  virtual ~Handler();
+    virtual ~Handler();
 
-  virtual int handle(epoll_event e) = 0;
-};
+    virtual int handle(epoll_event e) = 0;
+  };
 }
 
 #endif // SERIAL_OVER_SOCKET_HANDLER_H
