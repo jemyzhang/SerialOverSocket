@@ -128,6 +128,10 @@ namespace SerialOverSocket {
                     tv.tv_usec / 1000);
             pconn->write_rxbuf(tsbuf, strlen(tsbuf));
           } else {
+            if (!SerialPort::getInstance()->isconnected()) {
+              // try to reconnect
+              SerialPort::getInstance()->connect();
+            }
             pconn->write_rxbuf(buf, count);
           }
         }
@@ -136,7 +140,7 @@ namespace SerialOverSocket {
 
     if (pconn->type() == Connection::CONNECTION_CLIENT) {
       /* received data from socket,
-       * should be send to the serial port */
+       * should be sent to the serial port */
       if (!SerialPort::getInstance()->isconnected()) {
         pconn->write_txbuf("Serial Port not connected\n");
       }
