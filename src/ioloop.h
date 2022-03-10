@@ -12,34 +12,34 @@
 using namespace std;
 
 namespace SerialOverSocket {
-  class IOLoop {
-  public:
-    IOLoop();
+class IOLoop {
+public:
+  IOLoop();
 
-    ~IOLoop();
+  ~IOLoop();
 
-  public:
-    void start();
+public:
+  void start();
 
-    void stop() { running_ = false; }
+  void stop() { running_ = false; }
 
-    void addHandler(int fd, Handler *handler, unsigned int events);
+  void addHandler(int fd, Handler *handler, unsigned int events);
 
-    void modifyHandler(int fd, unsigned int events);
+  void modifyHandler(int fd, unsigned int events);
 
-    void removeHandler(int fd);
+  void removeHandler(int fd);
 
-    int get_eventpoll_fd(void) { return epfd_; }
+  int get_eventpoll_fd(void) { return epfd_; }
 
-  public:
-    static shared_ptr<IOLoop> getInstance();
+public:
+  static shared_ptr<IOLoop> getInstance();
 
-  private:
-    int epfd_;
-    bool running_;
-    static shared_ptr<IOLoop> instance_;
-    map<int, Handler *> handlers_;
-  };
-}
+private:
+  int epfd_;
+  bool running_;
+  static shared_ptr<IOLoop> instance_;
+  map<int, Handler *> handlers_;
+};
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_IOLOOP_H

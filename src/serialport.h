@@ -16,49 +16,49 @@
 using namespace std;
 
 namespace SerialOverSocket {
-  class SerialPort {
-  public:
-    SerialPort();
+class SerialPort {
+public:
+  SerialPort();
 
-    ~SerialPort();
+  ~SerialPort();
 
-    using OnStatusChangedCallback = std::function<void(bool, int)>;
+  using OnStatusChangedCallback = std::function<void(bool, int)>;
 
-  public:
-    int connect(shared_ptr<ServerConfig> cfg);
+public:
+  int connect(shared_ptr<ServerConfig> cfg);
 
-    int connect() { return connect(cfg_); }
+  int connect() { return connect(cfg_); }
 
-    void disconnect();
+  void disconnect();
 
-    int reconnect();
+  int reconnect();
 
-    bool isconnected() { return fd_ > 0; }
+  bool isconnected() { return fd_ > 0; }
 
-    int fileno() { return fd_; }
+  int fileno() { return fd_; }
 
-    bool set_baudrate(int baudrate, bool instantly = false);
+  bool set_baudrate(int baudrate, bool instantly = false);
 
-    bool set_databits(int databits, bool instantly = false);
+  bool set_databits(int databits, bool instantly = false);
 
-    bool set_parity(char parity, bool instantly = false);
+  bool set_parity(char parity, bool instantly = false);
 
-    bool set_stopbit(char stopbit, bool instantly = false);
+  bool set_stopbit(char stopbit, bool instantly = false);
 
-    void InstallStatusCallback(const OnStatusChangedCallback &callback) {
-      callback_.insert(callback_.begin(), callback);
-    }
+  void InstallStatusCallback(const OnStatusChangedCallback &callback) {
+    callback_.insert(callback_.begin(), callback);
+  }
 
-  public:
-    static shared_ptr<SerialPort> getInstance();
+public:
+  static shared_ptr<SerialPort> getInstance();
 
-  private:
-    int fd_;
-    shared_ptr<ServerConfig> cfg_;
-    vector<OnStatusChangedCallback> callback_;
-    static shared_ptr<SerialPort> instance_;
-    struct termios options_;
-  };
+private:
+  int fd_;
+  shared_ptr<ServerConfig> cfg_;
+  vector<OnStatusChangedCallback> callback_;
+  static shared_ptr<SerialPort> instance_;
+  struct termios options_;
+};
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SERIALPORT_H

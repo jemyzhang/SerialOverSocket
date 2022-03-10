@@ -12,43 +12,43 @@
 using namespace std;
 
 namespace SerialOverSocket {
-  class CharBuf {
-  public:
-    CharBuf();
+class CharBuf {
+public:
+  CharBuf();
 
-    ~CharBuf();
+  ~CharBuf();
 
-  public:
-    void reset();
+public:
+  void reset();
 
-    ssize_t append(const char *content, ssize_t length);
+  ssize_t append(const char *content, ssize_t length);
 
-    bool hasline();
+  bool hasline();
 
-    bool getchar(char &c);
+  bool getchar(char &c);
 
-    bool empty();
+  bool empty();
 
-    string popline();
+  string popline();
 
-    char popchar();
+  char popchar();
 
-    void pop(ssize_t length);
+  void pop(ssize_t length);
 
-    //remove one char from the last line expect the LF
-    ssize_t remove_line_char(ssize_t length = 1);
+  // remove one char from the last line expect the LF
+  ssize_t remove_line_char(ssize_t length = 1);
 
-    char *contents() { return m_buf.data(); }
+  char *contents() { return m_buf.data(); }
 
-    ssize_t length() { return m_buf.size(); }
+  ssize_t length() { return m_buf.size(); }
 
-  private:
-    vector<char>::iterator find(char);
+private:
+  vector<char>::iterator find(char);
 
-  private:
-    vector<char> m_buf;
-    mutex mutex_;
-  };
-}
+private:
+  vector<char> m_buf;
+  mutex mutex_;
+};
+} // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCK_CHARBUF_H

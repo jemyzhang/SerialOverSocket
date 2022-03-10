@@ -32,4 +32,3 @@
 #define MOVE_RIGHT(n) "\e[" #n "C"
 #define MOVE_LEFT(n) "\e[" #n "D"
 #endif /*ANSI_COLOR_H*/
-

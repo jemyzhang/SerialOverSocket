@@ -5,35 +5,36 @@
 #ifndef SERIAL_OVER_SOCKET_SNIPPETS_H
 #define SERIAL_OVER_SOCKET_SNIPPETS_H
 
-#include <string>
 #include <memory>
+#include <string>
 
 using namespace std;
 
 namespace SerialOverSocket {
-  class Snippets {
-  public:
-    Snippets() = default;
+class Snippets {
+public:
+  Snippets() = default;
 
-    ~Snippets() = default;
+  ~Snippets() = default;
 
-  public:
-    static shared_ptr<Snippets> getInstance();
+public:
+  static shared_ptr<Snippets> getInstance();
 
-  public:
-    void set_location(string l) { location = l; }
+public:
+  void set_location(string l) { location = l; }
 
-    string ls(string prefix = string());
+  string ls(string prefix = string());
 
-    bool exists(string title);
+  bool exists(string title);
 
-    string cat(string title, string prefix = string());
+  string cat(string title, string prefix = string());
 
-  public:
-    static shared_ptr<Snippets> instance_;
-  private:
-    string location;
-  };
+public:
+  static shared_ptr<Snippets> instance_;
+
+private:
+  string location;
+};
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SNIPPETS_H

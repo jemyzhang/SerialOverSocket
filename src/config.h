@@ -5,92 +5,93 @@
 #ifndef SERIAL_OVER_SOCKET_CONFIG_H
 #define SERIAL_OVER_SOCKET_CONFIG_H
 
-#include <string>
-#include <memory>
 #include <json.hpp>
+#include <memory>
+#include <string>
 
 using namespace std;
 using namespace nlohmann;
 
 namespace SerialOverSocket {
 
-  class Config {
-  public:
-    Config() = default;
+class Config {
+public:
+  Config() = default;
 
-    ~Config() = default;
+  ~Config() = default;
 
-  public:
-    static shared_ptr<Config> getInstance();
+public:
+  static shared_ptr<Config> getInstance();
 
-  public:
-    string server_address();
+public:
+  string server_address();
 
-    int server_port();
+  int server_port();
 
-    int admin_port();
+  int admin_port();
 
-    string admin_password();
+  string admin_password();
 
-  public:
-    bool load_config_file(string filepath);
+public:
+  bool load_config_file(string filepath);
 
-  public:
-    static shared_ptr<Config> instance_;
-  protected:
-    json configs;
-    string cfgfile;
-  };
+public:
+  static shared_ptr<Config> instance_;
 
-  class ServerConfig : public Config {
-  public:
-    ServerConfig() = default;
+protected:
+  json configs;
+  string cfgfile;
+};
 
-    ~ServerConfig() = default;
+class ServerConfig : public Config {
+public:
+  ServerConfig() = default;
 
-  public:
-    static shared_ptr<ServerConfig> getInstance();
+  ~ServerConfig() = default;
 
-  public:
-    // get
-    string serial_device();
+public:
+  static shared_ptr<ServerConfig> getInstance();
 
-    int serial_baudrate();
+public:
+  // get
+  string serial_device();
 
-    int serial_databits();
+  int serial_baudrate();
 
-    int serial_stopbit();
+  int serial_databits();
 
-    char serial_parity();
+  int serial_stopbit();
 
-    bool timestamp();
+  char serial_parity();
 
-    // set
-    void serial_device(string);
+  bool timestamp();
 
-    void serial_baudrate(int);
+  // set
+  void serial_device(string);
 
-    void serial_databits(int);
+  void serial_baudrate(int);
 
-    void serial_stopbit(int);
+  void serial_databits(int);
 
-    void serial_parity(char);
+  void serial_stopbit(int);
 
-    void timestamp(bool);
+  void serial_parity(char);
 
-    // save
-    void save();
-  };
+  void timestamp(bool);
 
-  class ClientConfig : public Config {
-  public:
-    static shared_ptr<ClientConfig> getInstance();
+  // save
+  void save();
+};
 
-  public:
-    ClientConfig() = default;
+class ClientConfig : public Config {
+public:
+  static shared_ptr<ClientConfig> getInstance();
 
-    ~ClientConfig() = default;
-  };
+public:
+  ClientConfig() = default;
+
+  ~ClientConfig() = default;
+};
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_CONFIG_H

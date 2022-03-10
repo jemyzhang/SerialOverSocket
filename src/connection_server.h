@@ -18,73 +18,73 @@ using namespace std;
 
 namespace SerialOverSocket {
 
-  class ClientConnection : public Connection, public DataProxy::Client {
-  public:
-    explicit ClientConnection(int fd, string host, string port);
+class ClientConnection : public Connection, public DataProxy::Client {
+public:
+  explicit ClientConnection(int fd, string host, string port);
 
-    ~ClientConnection() final;
+  ~ClientConnection() final;
 
-  public:
-    ssize_t write_rxbuf(const char *content, ssize_t length);
+public:
+  ssize_t write_rxbuf(const char *content, ssize_t length);
 
-    // implementation of DataProxy::Client
-    void received(const char *content, ssize_t length);
-  };
+  // implementation of DataProxy::Client
+  void received(const char *content, ssize_t length);
+};
 
-  class SerialPortConnection : public Connection, public DataProxy::Client {
-  public:
-    explicit SerialPortConnection(int fd, string dev, string detail);
+class SerialPortConnection : public Connection, public DataProxy::Client {
+public:
+  explicit SerialPortConnection(int fd, string dev, string detail);
 
-    ~SerialPortConnection() final;
+  ~SerialPortConnection() final;
 
-  public:
-    ssize_t write_rxbuf(const char *content, ssize_t length) final;
+public:
+  ssize_t write_rxbuf(const char *content, ssize_t length) final;
 
-    // implementation of DataProxy::Client
-    void received(const char *content, ssize_t length) final;
-  };
+  // implementation of DataProxy::Client
+  void received(const char *content, ssize_t length) final;
+};
 
-  class AdminConnection : public Connection, public DataProxy::Client {
-  public:
-    explicit AdminConnection(int fd, string host, string port);
+class AdminConnection : public Connection, public DataProxy::Client {
+public:
+  explicit AdminConnection(int fd, string host, string port);
 
-    ~AdminConnection() final;
+  ~AdminConnection() final;
 
-  public:
-    ssize_t write_rxbuf(const char *content, ssize_t length) final;
+public:
+  ssize_t write_rxbuf(const char *content, ssize_t length) final;
 
-    // implementation of DataProxy::Client
-    void received(const char *content, ssize_t length) final;
+  // implementation of DataProxy::Client
+  void received(const char *content, ssize_t length) final;
 
-  private:
-    void process_cmd(string cmd);
+private:
+  void process_cmd(string cmd);
 
-    void print_help();
+  void print_help();
 
-    bool quit_;
-  };
+  bool quit_;
+};
 
-  class ConnectionManager {
-  public:
-    ConnectionManager();
+class ConnectionManager {
+public:
+  ConnectionManager();
 
-    ~ConnectionManager();
+  ~ConnectionManager();
 
-  public:
-    int append(Connection *pinfo);
+public:
+  int append(Connection *pinfo);
 
-    int remove(Connection *pinfo);
+  int remove(Connection *pinfo);
 
-    Connection *remove(int fd);
+  Connection *remove(int fd);
 
-    Connection *pop();
+  Connection *pop();
 
-    Connection *find(int fd);
+  Connection *find(int fd);
 
-  private:
-    vector<Connection *> connections_;
-    mutex mutex_;
-  };
+private:
+  vector<Connection *> connections_;
+  mutex mutex_;
+};
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_CONNECTION_SERVER_H

@@ -15,55 +15,56 @@ using namespace std;
 
 namespace SerialOverSocket {
 
-  class Client : public Handler, public Connection {
-  public:
-    explicit Client();
+class Client : public Handler, public Connection {
+public:
+  explicit Client();
 
-    ~Client() final;
+  ~Client() final;
 
-    int handle(epoll_event e) final;
+  int handle(epoll_event e) final;
 
-    ssize_t write_rxbuf(const char *content, ssize_t length) final;
+  ssize_t write_rxbuf(const char *content, ssize_t length) final;
 
-  private:
-    int input_data_handler(int fd);
+private:
+  int input_data_handler(int fd);
 
-    int input_event_handler(int fd);
+  int input_event_handler(int fd);
 
-    int output_data_handler();
+  int output_data_handler();
 
-    void set_termio_mode();
+  void set_termio_mode();
 
-  private:
-    void switch_admin_connection(bool connect);
+private:
+  void switch_admin_connection(bool connect);
 
-    void process_console_input(const char *content, ssize_t length);
+  void process_console_input(const char *content, ssize_t length);
 
-    void handle_cmd(string cmd);
+  void handle_cmd(string cmd);
 
-    static void print_help();
+  static void print_help();
 
-  private:
-    shared_ptr<ClientConfig> cfg;
-    Socket client_socket_;
-    unique_ptr<Socket> admin_socket_;
-    struct termios term_option_;
-    int client_fd_;    // for backup
-    string client_buf; // store input content from serial port while switched to
-    // admin socket
-  private:
-    vector<string> history_;
-    int history_idx_;
-    string cmdline_;
-    int cursor_pos_;
-  private:
-    void start_log(string path);
+private:
+  shared_ptr<ClientConfig> cfg;
+  Socket client_socket_;
+  unique_ptr<Socket> admin_socket_;
+  struct termios term_option_;
+  int client_fd_;    // for backup
+  string client_buf; // store input content from serial port while switched to
+  // admin socket
+private:
+  vector<string> history_;
+  int history_idx_;
+  string cmdline_;
+  int cursor_pos_;
 
-    void stop_log();
+private:
+  void start_log(string path);
 
-    int log_fd_;
-    string log_file_;
-  };
+  void stop_log();
+
+  int log_fd_;
+  string log_file_;
+};
 } // namespace SerialOverSocket
 
 #endif // SERIAL_OVER_SOCKET_SOCKET_CLIENT_H

@@ -5,7 +5,7 @@
 #include "handler.h"
 
 namespace SerialOverSocket {
-  Handler::Handler() = default;
+Handler::Handler() = default;
 
-  Handler::~Handler() = default;
-}
+Handler::~Handler() = default;
+} // namespace SerialOverSocket
